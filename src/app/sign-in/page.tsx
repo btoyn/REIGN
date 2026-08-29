@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 
 /**
  * Sign in.
@@ -21,7 +21,7 @@ export default function SignInPage() {
 
   // Someone already signed in has no business on this screen.
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    getSupabase().auth.getSession().then(({ data }) => {
       if (data.session) router.replace("/");
     });
   }, [router]);
@@ -31,7 +31,7 @@ export default function SignInPage() {
     setBusy(true);
     setError(null);
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { error: signInError } = await getSupabase().auth.signInWithPassword({
       email,
       password,
     });

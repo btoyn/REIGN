@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 
 /**
  * Reads of the exercise library.
@@ -24,7 +24,7 @@ export type Exercise = {
  * strings, which is cheaper than it sounds and happens once per visit.
  */
 export async function fetchMuscleGroups(): Promise<string[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("exercises")
     .select("primary_muscle");
 
@@ -39,7 +39,7 @@ export async function fetchMuscleGroups(): Promise<string[]> {
 export async function fetchExercisesByMuscle(
   muscle: string,
 ): Promise<Exercise[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("exercises")
     .select("id, name, primary_muscle, equipment")
     .eq("primary_muscle", muscle)

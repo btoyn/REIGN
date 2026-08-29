@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 
 /**
  * Keeps the signed-in screens behind an account.
@@ -28,13 +28,15 @@ export function AuthGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    const client = getSupabase();
+
+    client.auth.getSession().then(({ data }) => {
       if (!active) return;
       setState(data.session ? "in" : "out");
     });
 
     // Keeps the app honest if the session ends in another tab, or expires.
-    const { data: listener } = supabase.auth.onAuthStateChange(
+    const { data: listener } = client.auth.onAuthStateChange(
       (_event, session) => {
         if (!active) return;
         setState(session ? "in" : "out");

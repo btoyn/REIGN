@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 
 /**
  * Sign out.
@@ -17,7 +17,7 @@ export function SignOutButton() {
 
   async function onClick() {
     setBusy(true);
-    await supabase.auth.signOut();
+    await getSupabase().auth.signOut();
     router.replace("/sign-in");
   }
 
