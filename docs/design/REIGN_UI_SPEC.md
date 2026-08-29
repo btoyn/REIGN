@@ -182,7 +182,7 @@ Use icons only when they improve comprehension.
 
 Do not decorate the interface with unnecessary icons.
 
-Use Expo-compatible system-style icons when needed.
+Use simple system-style icons when needed. Prefer inline SVG over an icon font.
 
 Do not use emoji as interface icons.
 
@@ -260,7 +260,7 @@ Primary workout block:
 
 - `PUSH A`
 - `Bigger Leaner Stronger`
-- `Week 6 · Day 4`
+- `Monday · Back`
 - `5 exercises · ~52 min`
 
 Primary CTA:
@@ -310,7 +310,7 @@ The Today screen should remain sparse.
 
 # Active Workout Direction
 
-This is not part of Milestone 1, but future implementation should follow these principles.
+This is not part of the current milestone, but future implementation should follow these principles.
 
 The workout screen prioritizes speed.
 
@@ -432,28 +432,27 @@ Do not copy Boostcamp's visual identity.
 
 ---
 
-# Milestone 1
+# Technology
 
-The first implementation should include only:
+REIGN is a web app, added to the iPhone home screen. It is not a React Native
+or Expo app and is not distributed through the App Store.
 
-- Expo SDK 54 project
+- Next.js, App Router
 - TypeScript
-- expo-router
-- dark-only theme
-- four-tab navigation
-- polished static Today screen
-- approved REIGN brand assets
-
-Use static mock data.
-
-Do not add:
-
+- Tailwind CSS
 - Supabase
-- authentication
-- Apple Health
-- persistence
-- workout state
-- analytics
-- additional features
+- Vercel
+
+Typography uses the system font stack, which resolves to the native system face
+on each platform. No custom font is loaded.
+
+# Milestones
+
+`CLAUDE.md` holds the current milestone list and states which one is active.
+It takes precedence over this document on scope and sequencing.
+
+This specification describes the intended design across all of them. Do not
+build ahead of the active milestone just because the design for a later one is
+described here.
 
 The visual result should be reviewed before building the workout logging system.
