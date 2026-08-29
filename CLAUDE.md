@@ -91,7 +91,7 @@ Verify UI changes in a real browser with Playwright before calling them done.
 Ask when a product decision is genuinely unspecified.
 
 CURRENT MILESTONE
-M0.
+M2.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
