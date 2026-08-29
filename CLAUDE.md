@@ -83,6 +83,9 @@ M6 Weekday splits, then optional programs.
 M7 Progress. History, PRs, strength trend.
 
 WORKING RULES
+Never ship code you have not actually run. If this environment blocks testing,
+build a local equivalent and test there. A check that cannot fail is worse than
+no check.
 Do not build ahead of the current milestone, even if it seems small.
 Read docs/design/ before building a screen.
 Use existing theme tokens. Do not invent colors.
