@@ -3,6 +3,13 @@
 Version 2. Supersedes the Milestone 1 plan.
 Written after research into unmet needs in workout apps, plus a full interview about how Brandon actually trains.
 
+> **Note, added when this plan was saved into the repository.** The `Revised CLAUDE.md`
+> block below is superseded by the `CLAUDE.md` at the root of this repository, which was
+> written later and carries more: how the owner actually trains, the brand asset
+> constraints, the terminology rules, the full M0 to M7 list, and the progression rule.
+> Do not replace the repository's `CLAUDE.md` with the block below. The rest of this
+> plan stands as written.
+
 ---
 
 ## What changed and why
