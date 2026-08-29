@@ -1,5 +1,6 @@
 "use client";
 
+import { Dumbbell, House, TrendingUp, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -8,17 +9,17 @@ import { usePathname } from "next/navigation";
  *
  * The bar stays visually quiet per docs/design/REIGN_UI_SPEC.md — dark
  * background, hairline top border, muted inactive items, restrained gold for
- * the active tab, no floating treatment and no gradient.
+ * the active tab, modest icon size, no floating treatment and no gradient.
  *
  * This is a client component because it reads the current URL to decide which
  * tab is active.
  */
 
 const TABS = [
-  { href: "/", label: "Today" },
-  { href: "/program", label: "Program" },
-  { href: "/progress", label: "Progress" },
-  { href: "/you", label: "You" },
+  { href: "/", label: "Today", Icon: House },
+  { href: "/program", label: "Program", Icon: Dumbbell },
+  { href: "/progress", label: "Progress", Icon: TrendingUp },
+  { href: "/you", label: "You", Icon: User },
 ] as const;
 
 export function TabBar() {
@@ -30,7 +31,7 @@ export function TabBar() {
       className="bg-bg border-border pb-safe sticky bottom-0 border-t"
     >
       <ul className="flex">
-        {TABS.map(({ href, label }) => {
+        {TABS.map(({ href, label, Icon }) => {
           const isActive = pathname === href;
 
           return (
@@ -38,10 +39,11 @@ export function TabBar() {
               <Link
                 href={href}
                 aria-current={isActive ? "page" : undefined}
-                className={`text-label flex h-14 items-center justify-center uppercase transition-colors ${
+                className={`text-label flex flex-col items-center justify-center gap-1.5 pt-2.5 pb-2 uppercase transition-colors ${
                   isActive ? "text-accent" : "text-muted"
                 }`}
               >
+                <Icon size={20} strokeWidth={1.75} aria-hidden />
                 {label}
               </Link>
             </li>
