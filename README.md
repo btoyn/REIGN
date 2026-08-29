@@ -1,66 +1,77 @@
 # REIGN
 
-Personal iPhone-first strength and cardio training app.
+Personal strength and cardio training app, built as a web app you add to your
+iPhone home screen.
 
 Dark-only. No fluff, proven training, fast workout logging, progressive overload.
 
-## Status — Milestone 1
+## Status
 
-The four-tab shell and a static Today screen. Nothing else.
+The project was rebuilt as a web app. Before this, it was a native iPhone app
+built with Expo and React Native; that version is still in the git history and
+is described in `docs/MILESTONE_1_CODE.md` and `docs/MILESTONE_1_RATIONALE.md`.
 
-There is no database, authentication, Apple Health integration, persistence,
-workout state or analytics. All workout, program and cardio content is static
-mock data in `src/data/today.ts`. The Today screen's date is the live device
-date and is display-only.
+Right now this is a fresh, working Next.js starter. The REIGN design has not
+been built on top of it yet.
 
 ## Stack
 
 | | |
 |---|---|
-| Expo SDK | 54 (`expo` 54.0.37) |
-| React Native | 0.81.5 |
-| React | 19.1.0 |
-| Router | `expo-router` 6.0.24 (file-based, typed routes) |
-| Language | TypeScript 5.9.3, strict |
+| Framework | Next.js 16.3.3 (App Router) |
+| Language | TypeScript 5 |
+| Styling | Tailwind CSS 4 |
+| Runtime | React 19.2.8 |
 
-Dependencies are pinned to exact versions so a fresh install cannot drift off
-SDK 54. The App Store build of Expo Go must be on SDK 54 to open this project.
+## Running it on Windows
 
-## Running
+You need Node.js installed (version 20 or newer). Then, in a terminal opened in
+this folder:
 
 ```
 npm install
-npm start
+npm run dev
 ```
 
-Scan the QR code with Expo Go on an iPhone. Development is on Windows; the
-whole Milestone 1 workflow runs there, since Expo Go needs no native build
-toolchain.
+The first command downloads everything the project needs, and only has to be
+run once (or again after the project's dependencies change). The second starts
+the app. Leave it running, and open <http://localhost:3000> in your browser.
 
-The `ios` and `android` npm scripts are not usable on Windows — `npm run ios`
-requires macOS and Xcode. Use `npm start` and Expo Go.
+To stop it, press `Ctrl + C` in that terminal.
 
-## Checks
+### Seeing it on your iPhone
 
-```
-npm run typecheck   # tsc --noEmit
-npm run lint        # expo lint
-npx expo-doctor
-```
-
-## Layout
+Both your PC and your iPhone need to be on the same Wi-Fi network. Start the
+app with:
 
 ```
-app/                    expo-router routes; thin adapters only
-  _layout.tsx           root stack, pinned dark navigation theme
-  (tabs)/_layout.tsx    Today · Program · Progress · You
-src/
-  theme/                design tokens — colors, spacing, radius, typography
-  components/           shared UI primitives
-  screens/              screen composition
-  data/                 static mock data
-assets/brand/           approved REIGN brand assets
-docs/design/            UI specification and reference images
+npm run dev -- --hostname 0.0.0.0
+```
+
+Find your PC's local network address by running `ipconfig` and looking for the
+`IPv4 Address` (it usually looks like `192.168.x.x`). On your iPhone, open
+Safari and go to `http://YOUR-ADDRESS:3000`. To add it to your home screen, tap
+the Share button, then "Add to Home Screen".
+
+## Other commands
+
+```
+npm run build     # make the optimised version, and check for errors
+npm run start     # run that optimised version
+npm run lint      # check the code for common mistakes
+npx tsc --noEmit  # check the code's types (run npm run build first)
+```
+
+## What's in here
+
+```
+src/app/          the pages; page.tsx is the home page
+src/app/layout.tsx  the shared wrapper around every page
+src/app/globals.css styles that apply everywhere
+public/           images and files served exactly as they are
+assets/brand/     approved REIGN brand assets
+docs/design/      the UI specification and reference screenshots
+docs/             records of the previous React Native build
 ```
 
 ## Design authority
@@ -68,3 +79,8 @@ docs/design/            UI specification and reference images
 `docs/design/REIGN_UI_SPEC.md` is the visual source of truth, with the approved
 assets in `assets/brand/` and references in `docs/design/references/`. Do not
 independently redesign REIGN. See `CLAUDE.md`.
+
+Note that the specification and `CLAUDE.md` were written for the React Native
+version and still refer to it in places. The design direction — dark-only, the
+colours, the spacing, the Today screen layout — still applies. The technology
+sections do not.
