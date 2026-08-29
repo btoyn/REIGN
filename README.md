@@ -33,8 +33,12 @@ npm install
 npm start
 ```
 
-Scan the QR code with Expo Go on an iPhone. There is no Mac-only step for
-Milestone 1.
+Scan the QR code with Expo Go on an iPhone. Development is on Windows; the
+whole Milestone 1 workflow runs there, since Expo Go needs no native build
+toolchain.
+
+The `ios` and `android` npm scripts are not usable on Windows — `npm run ios`
+requires macOS and Xcode. Use `npm start` and Expo Go.
 
 ## Checks
 
