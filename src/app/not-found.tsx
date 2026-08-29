@@ -11,7 +11,7 @@ import { ScreenTitle } from "@/components/ScreenTitle";
  */
 export default function NotFound() {
   return (
-    <>
+    <main className="px-gutter pt-safe flex-1">
       <ScreenTitle>Not found</ScreenTitle>
 
       <section className="mt-3">
@@ -27,6 +27,6 @@ export default function NotFound() {
       >
         Back to Today
       </Link>
-    </>
+    </main>
   );
 }

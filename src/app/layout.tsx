@@ -1,7 +1,5 @@
 import type { Metadata, Viewport } from "next";
 
-import { TabBar } from "@/components/TabBar";
-
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -27,12 +25,17 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+/**
+ * The document.
+ *
+ * The tab bar and the sign-in gate live in the (app) group rather than here,
+ * so the sign-in screen renders without either.
+ */
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className="h-full antialiased">
       <body className="bg-bg text-ink font-sans flex min-h-dvh flex-col">
-        <main className="px-gutter pt-safe flex-1">{children}</main>
-        <TabBar />
+        {children}
       </body>
     </html>
   );
