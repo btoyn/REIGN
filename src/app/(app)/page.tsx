@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { BrandHeader } from "@/components/BrandHeader";
 import { ScreenTitle } from "@/components/ScreenTitle";
 
@@ -6,9 +8,9 @@ import { ScreenTitle } from "@/components/ScreenTitle";
  *
  * The screen answers one question: what am I doing today?
  *
- * There is no database yet and nothing has been logged, so this is the honest
- * empty state and the only state Today can currently be in. No placeholder
- * workout, no invented split, no fake history.
+ * Nothing has been logged, so this is the honest empty state and the only
+ * state Today can currently be in. No placeholder workout, no invented split,
+ * no fake history.
  *
  * LAST WORKOUT and CARDIO are deliberately absent. Both would read "nothing"
  * on top of the empty state above them, and the spec calls for Today to stay
@@ -28,22 +30,16 @@ export default function TodayPage() {
       </section>
 
       {/*
-        The primary action is deliberately not gold. Gold marks the live
-        primary action, and logging does not exist yet. It becomes a working
-        gold button when the logging engine lands.
+        Gold now, because the button does something: it opens the exercise
+        library. It still does not create a workout, which the destination
+        screen states rather than leaving to be assumed.
       */}
-      <div className="mt-8">
-        <button
-          type="button"
-          disabled
-          className="text-button bg-surface text-muted border-border rounded-md h-14 w-full cursor-not-allowed border uppercase"
-        >
-          Start Workout
-        </button>
-        <p className="text-body text-muted mt-3 text-center">
-          Logging arrives next.
-        </p>
-      </div>
+      <Link
+        href="/exercises"
+        className="text-button bg-accent text-bg active:bg-accent-pressed mt-8 flex h-14 w-full items-center justify-center rounded-md uppercase"
+      >
+        Start Workout
+      </Link>
     </>
   );
 }
