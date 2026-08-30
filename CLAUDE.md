@@ -33,6 +33,19 @@ decorative charts, clutter, gradients, and invented features.
 Gold is an accent, not a background. Use it for the primary button, the active
 tab, completed sets, and PRs.
 
+THE STRIP TEST
+Remove all borders, shadows and corner radii. Does the layout still
+communicate what matters? If yes, hierarchy comes from structure and
+typography, which is correct. If no, it is leaning on cosmetic noise.
+Apply this to every screen before calling it done.
+
+ONE DOMINANT ACTION
+Every screen has exactly one primary action. If two elements compete to be the
+main call to action, the screen is not finished.
+
+NEVER COLOUR ALONE
+No state is signalled by hue only. Weight, size or a marker carries it too.
+
 BRAND ASSETS
 The wordmark is in use. assets/brand/reign-wordmark-transparent.png is derived
 from the supplied PNG by removing its flat near-black background and its empty
@@ -44,6 +57,14 @@ Never recreate the lion in CSS, SVG, text, or generated graphics.
 TERMINOLOGY
 Workout, START WORKOUT, Last Workout, Program, Progress.
 Never Session.
+
+COPY
+Functional, short, consistent. Never motivational.
+Banned: "let's get after it", "ready to dominate", "you've got this",
+"unlock your potential", "your fitness journey", "today's mission",
+"crush", "legendary". Any second-person hype register.
+Use the same word for the same thing every time. Never rotate between
+Log, Train, Lift, Begin, Start.
 
 DATA RULES
 Store numbers as numbers. Never store a formatted display string in the database.
@@ -67,6 +88,14 @@ what the usual working weight is. Do not build a separate setup wizard.
 EVERY SCREEN MUST HANDLE
 Loading. Empty. Error. Not just the happy path.
 An unhandled empty state is a bug, not a later task.
+
+FEATURE ADMISSION TEST
+Before anything ships, it must answer all four:
+1. What decision or action does it help with during a workout?
+2. Which current milestone requires it?
+3. What data makes it truthful?
+4. Does REIGN_UI_SPEC.md support it?
+If it cannot answer all four, it does not ship.
 
 OUT OF SCOPE UNLESS ASKED
 Social feeds, followers, nutrition, macros, AI-generated workouts, challenges,

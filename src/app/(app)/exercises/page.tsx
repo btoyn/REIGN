@@ -105,9 +105,11 @@ export default function ExercisesPage() {
                   type="button"
                   aria-pressed={isSelected}
                   onClick={() => selectMuscle(muscle)}
-                  className={`text-label h-10 rounded-md border px-3 uppercase ${
+                  // Selection carries weight as well as gold. Hue alone is not
+                  // a state signal, per CLAUDE.md.
+                  className={`text-label h-10 rounded-sm border px-3 uppercase ${
                     isSelected
-                      ? "border-accent text-accent"
+                      ? "border-accent text-accent font-bold"
                       : "border-border text-muted"
                   }`}
                 >

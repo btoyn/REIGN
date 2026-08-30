@@ -22,9 +22,16 @@ export const primaryAction = `${ACTION_BASE} bg-accent text-bg active:bg-accent-
 /** A real action that is not what the screen is for. */
 export const secondaryAction = `${ACTION_BASE} bg-surface text-ink border-border border`;
 
-/** A choice among several. Sized for a thumb, not a cursor. */
+/**
+ * A choice among several. Sized for a thumb, not a cursor.
+ *
+ * Left aligned, not centred. Under the strip test the centred version fell
+ * apart: with the borders gone the labels floated with nothing to align to,
+ * while everything else on the screen hung off the left edge. Aligned left, the
+ * choices read as a list whether or not they are drawn as buttons.
+ */
 export const choice =
-  "text-lead border-border text-ink flex h-14 w-full items-center justify-center rounded-md border px-3 disabled:opacity-60";
+  "text-lead border-border text-ink flex h-14 w-full items-center rounded-md border px-4 disabled:opacity-60";
 
 /** An escape hatch. Reads as a link, not a button, so it never competes. */
 export const quiet = "text-body text-muted underline underline-offset-4";
