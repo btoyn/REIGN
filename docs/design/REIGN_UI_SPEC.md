@@ -266,8 +266,13 @@ Top area, on every state:
 - current date
 
 Then a single block whose content depends on the state below, then the primary
-action, then a quiet text link, `Something else`, which opens the exercise
-picker to improvise.
+action, then a quiet text link, `Change today`, which reopens the six regions so
+the day's focus can be corrected.
+
+`Change today` replaces the earlier `Something else`. That label described a
+gesture rather than a decision, and it read as "add an exercise" instead of
+"the plan is wrong today". Same verb as the permanent change in Program, with
+the object naming the scope.
 
 `LAST WORKOUT` sits beneath all of it once there is history. `CARDIO` arrives
 with manual entry.
@@ -294,7 +299,7 @@ about a day the owner has not reached yet.
 - `BACK` — the split name, display size
 - the program or split name beneath it
 - `START WORKOUT`
-- `Something else`
+- `Change today`
 
 ### In progress
 
@@ -311,12 +316,12 @@ one.
 
 - `BACK`
 - `Finished · 52 min · 18 sets`
-- No primary button. `Something else` becomes the only action.
+- No primary button. `Change today` becomes the only action.
 
 ### Rest day
 
 - `Rest day`
-- No primary button. `Something else` only.
+- No primary button. `Change today` only.
 
 ---
 
@@ -328,6 +333,85 @@ locking that model matters more than the feature does.
 
 When programs arrive, they take precedence over the split, and this section is
 revised then rather than anticipated now.
+
+---
+
+## Changing today, and changing the weekday
+
+Two different actions. They differ only in scope, so the interface says so:
+
+- **`Change today`** — chest is right for Mondays, wrong for this Monday.
+- **Changing Mondays** — chest is no longer what Mondays are.
+
+Same verb, different object. Nothing else needs explaining.
+
+### Change today lives on Today
+
+A quiet text link under the split name. It reopens the six regions plus
+`Rest day`, the same choice the weekday was first answered with. Picking one
+proceeds as that region.
+
+It sits where the wrong answer is visible, and it is the urgent case, since the
+owner is standing in the gym. It is a link and not a button so `START WORKOUT`
+stays the only dominant action.
+
+**The override is not stored.** `workouts.split_name` is a copy rather than a
+reference, so a workout started after the override records `Back` while the
+split row still says `Chest`. The deviation is recorded by the workout it
+produced, and there is nothing else to keep.
+
+**Consequence, stated so it is not mistaken for a bug: before a workout exists,
+`Change today` does not survive a reload.** Nothing has happened yet, so there
+is nothing to remember, and tomorrow is a different day. This is why
+`Change today` ships with the workout engine and not before it — until a workout
+can be created, the control would change a heading and forget.
+
+### Changing the weekday lives in Program
+
+The seven weekdays and what each one is. Days not yet reached are shown as
+unanswered rather than left blank. Changing one is permanent, and is the same
+write Today does when it first learns a day.
+
+It belongs there because it is the whole schedule rather than one day, it is a
+considered edit made rarely, and `program schedule` is already in Program
+Direction below.
+
+**Today does not prompt after a one-off change.** Offering "Mondays are still
+chest, change that?" would turn a rare correction into a recurring question.
+The tab is one tap away.
+
+---
+
+# Program — the weekday schedule
+
+The first real content in the Program tab. Browsable programs remain a later
+milestone; this is the split, which is what Today actually reads.
+
+## Why it exists now
+
+Today writes the split and cannot edit it. A value the app can write but not
+correct is a broken feature, not a lean one — reaching the choice again meant
+deleting a database row.
+
+## The screen
+
+Seven rows, Monday first, because the training week starts on Monday even though
+the database counts from Sunday.
+
+Each row carries the weekday and its split name. A day that has never been
+answered says so plainly rather than showing an empty space that reads as a
+failed load.
+
+`Rest day` is settable here, not only in Today's first question. A weekday split
+has rest days in it and the schedule cannot be honest without them.
+
+The screen has no primary action. It is a list of seven things, all equal, and
+promoting any one of them would be a lie about which day matters.
+
+## What it must handle
+
+Loading, error, and the case where no day has been answered yet. There is no
+empty state beyond that: the seven weekdays always exist, answered or not.
 
 ---
 
@@ -357,7 +441,7 @@ The Today screen should remain sparse.
 # Exercise Picker
 
 The picker is reached from `Add exercise` during a workout, from
-`Something else` on Today, and when choosing what to train on a new weekday.
+`Change today` on Today, and when choosing what to train on a new weekday.
 
 ## Order on the screen
 
