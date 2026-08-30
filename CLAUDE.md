@@ -50,8 +50,13 @@ BRAND ASSETS
 The wordmark is in use. assets/brand/reign-wordmark-transparent.png is derived
 from the supplied PNG by removing its flat near-black background and its empty
 margin. No ink was changed. The supplied file is untouched beside it.
-The supplied icon is 255x230. A real icon is square and 1024x1024. Use a
-placeholder. Do not upscale or alter the supplied files.
+The lion is the app icon, derived from assets/brand/reign-lion-approved.png by
+cropping to its own edges and centring it on a square. Nothing was upscaled: the
+master is 288 square and every icon is a reduction of it. The supplied files are
+untouched.
+The earlier rule here called for a placeholder because a real icon is 1024x1024.
+That was App Store thinking. REIGN is a web app on a home screen, where iOS asks
+for 180. There is no 512 icon, because that would mean upscaling.
 Never recreate the lion in CSS, SVG, text, or generated graphics.
 
 TERMINOLOGY
