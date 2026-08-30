@@ -213,8 +213,8 @@ written down here so "after slice E" means something.
 | B2 | Set logging: weight and reps, with the custom number pad rather than the iOS keyboard | Built |
 | A2 | Back to Today for `Resume` and `Done today`, which need a workout to exist before they can be built | Built, with B |
 | C | The exercise picker rebuilt search-first, with Recent, Frequent and the six regions | Built |
-| C2 | The movement loop on the photographs, and hiding an exercise | Next |
-| D | Double progression suggestions | |
+| C2 | The movement loop on the photographs, and hiding an exercise | Built |
+| D | Double progression suggestions | Next |
 | E | Rest timer with screen wake lock | |
 | F | PR detection and the last-time line | |
 

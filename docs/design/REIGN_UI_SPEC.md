@@ -679,8 +679,28 @@ The owner can hide an exercise they will never do. Personal curation beats any
 filter guessed in advance, and it means the trim above does not have to be
 perfect.
 
-A hidden exercise disappears from browse and from search. Search carries a
-`Show hidden` escape, so nothing is ever permanently unreachable.
+A hidden exercise disappears from browse and from search.
+
+Hiding is a **mode**, not a control on every row. There are 462 rows and hiding
+is rare, so a control on each of them would be furniture on all to serve one.
+One line at the foot of the picker, `Hide exercises I never do`, turns the list
+from adding to hiding; `Done` turns it back. While the mode is on, the screen
+says so plainly, because a list where tapping removes rather than adds must
+never be mistaken for the ordinary one.
+
+**The mode is also the escape.** Hidden exercises reappear while it is on, so
+they can be brought back. That replaces the separate `Show hidden` control this
+section used to call for: one mechanism instead of two, and nothing is ever
+permanently unreachable.
+
+The switch sits at the foot of the picker rather than inside browse, so it is
+reachable while searching. An exercise that was hidden is most likely to be
+looked for by name, and it would otherwise have no way back.
+
+A hidden row is struck through **and** says `Hidden`. Neither depends on the
+other and neither is a colour.
+
+Nothing is deleted, ever.
 
 This is the one part of the picker that needs storage: one small table, added
 beside the seven rather than altering any of them.
