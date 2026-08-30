@@ -609,6 +609,50 @@ triceps at 57 are still long after the split. They are grouped under `Barbell`,
 owner can jump to the section rather than read every row. This is structure in
 the list, not another tap.
 
+## Variety
+
+The third thing REIGN does. Browse exists so a part that has been left alone
+becomes visible without having to remember, so both browse levels are ordered
+and labelled by how long it has been.
+
+**The exercise list is sorted by how long since each was last performed**, the
+longest ago at the top. Exercises that have never been done follow, in
+alphabetical order. That order is the whole decision: the other way round would
+bury three movements the owner actually rotates under four hundred that have
+never been touched, which is a catalogue rather than a suggestion.
+
+**Every row says how long ago as well as what it is** — `cable · 4 weeks ago`. A
+row for an exercise never done says only the equipment, because `Not done` on
+four hundred rows is noise. Recent and Frequent carry the same line, so the
+sentence under a name means the same thing everywhere in the picker.
+
+**How long ago is written in words, never as a date.** Days up to a fortnight,
+then weeks, then months. `63 days ago` is a number to decode; `2 months ago` is
+a fact. The question is how long it has been, not when it was.
+
+**The sub-muscle row reports age, not size.** `Lats · Yesterday`, not `Lats ·
+20`. The region row above it already gave the size of what was being entered;
+having chosen the region, the remaining question is which part has been left
+alone. A part never trained reads `Not done`.
+
+The sub-muscle rows themselves stay in a fixed order rather than re-sorting by
+age. There are at most four of them, all visible at once, so sorting buys
+nothing and costs a list that moves under the thumb between visits.
+
+### What counts as having been performed
+
+A workout counts once it is **finished**, and **today's counts while it is still
+being done**.
+
+Both halves matter. Without the first, a workout walked out of half way through
+would make an exercise look performed when it may never have been, which is
+exactly the lie this feature must not tell. Without the second, an exercise
+added ten minutes ago would be missing from Recent, and Recent is what gets
+reached for while standing in the gym.
+
+An abandoned workout and one in progress are indistinguishable until the day is
+over, so the date is what separates them.
+
 ## Photographs
 
 Every exercise has two: the start of the movement and the end. They alternate on
