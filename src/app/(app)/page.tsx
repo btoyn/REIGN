@@ -98,10 +98,18 @@ export default function TodayPage() {
           setData({ status: "loaded", split, workout, counts, cardio });
       })
       .catch((e: Error) => {
-        // Technical wording is no use to whoever is reading it, so it goes to
-        // the console and the screen says what actually happened.
+        /*
+          Nothing is reported once the screen has gone. A request abandoned by
+          navigating away rejects like any other failure, but there is nobody
+          left to tell and no state left to set, so saying so in the console
+          only buries the failures that do matter.
+
+          When there is somebody to tell, the technical wording goes to the
+          console and the screen says what happened in words.
+        */
+        if (!active) return;
         console.error("Today failed to load", e);
-        if (active) setData({ status: "error" });
+        setData({ status: "error" });
       });
 
     return () => {

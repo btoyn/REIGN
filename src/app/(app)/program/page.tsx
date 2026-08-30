@@ -49,10 +49,18 @@ export default function ProgramPage() {
     fetchAllSplits()
       .then((splits) => active && setState({ status: "ready", splits }))
       .catch((e: Error) => {
-        // Technical wording is no use to the person reading it, so it goes to
-        // the console and the screen says what happened.
+        /*
+          Nothing is reported once the screen has gone. A request abandoned by
+          navigating away rejects like any other failure, but there is nobody
+          left to tell and no state left to set, so saying so in the console
+          only buries the failures that do matter.
+
+          When there is somebody to tell, the technical wording goes to the
+          console and the screen says what happened in words.
+        */
+        if (!active) return;
         console.error("fetchAllSplits failed", e);
-        if (active) setState({ status: "error" });
+        setState({ status: "error" });
       });
 
     return () => {

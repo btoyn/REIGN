@@ -8,6 +8,11 @@ import { ScreenTitle } from "@/components/ScreenTitle";
 import { Skeleton } from "@/components/Skeleton";
 import { primaryAction, quiet, secondaryAction } from "@/components/controls";
 import { Exercise, fetchExercisesByIds } from "@/lib/exercises";
+import {
+  dayLabel,
+  elapsedMinutes,
+  monthLabel,
+} from "@/lib/progress";
 import { LoggedSet, fetchSetsForEntries } from "@/lib/sets";
 import {
   Workout,
@@ -25,9 +30,9 @@ import {
  * screen: a workout is a row in the database from the moment it starts, so
  * closing the app mid-session loses nothing.
  *
- * Set logging is the next slice. This screen currently holds the exercises and
- * the finish, and says plainly that sets are not recorded yet rather than
- * showing controls that do nothing.
+ * A finished workout is the same screen with its controls gone, which is why
+ * Progress links straight here rather than to a second read-only view of the
+ * same rows.
  */
 
 type Data =
@@ -73,8 +78,15 @@ export default function WorkoutPage({ params }: PageProps<"/workout/[id]">) {
           });
       })
       .catch((e: Error) => {
+        /*
+          Nothing is reported once the screen has gone. A request abandoned by
+          navigating away rejects like any other failure, but there is nobody
+          left to tell and no state left to set, so saying so in the console
+          only buries the failures that do matter.
+        */
+        if (!active) return;
         console.error("workout failed to load", e);
-        if (active) setData({ status: "error" });
+        setData({ status: "error" });
       });
 
     return () => {
@@ -167,8 +179,14 @@ export default function WorkoutPage({ params }: PageProps<"/workout/[id]">) {
           <p className="text-display text-ink font-condensed uppercase">
             {workout.split_name ?? "Workout"}
           </p>
+          {/*
+            A finished workout says when it was and how long it took, because
+            it is now reachable from Progress and "Finished" on its own does
+            not say which day you are looking at. The one in progress is
+            today's by definition, so it only says that.
+          */}
           <p className="text-body text-muted">
-            {finished ? "Finished" : "In progress"}
+            {finished ? describeWhen(workout) : "In progress"}
           </p>
         </div>
       </div>
@@ -230,6 +248,19 @@ export default function WorkoutPage({ params }: PageProps<"/workout/[id]">) {
       )}
     </div>
   );
+}
+
+/**
+ * When a finished workout was, and how long it took.
+ *
+ * "Sunday 30 August 2026 · 52 min". The duration is left out rather than shown
+ * as a nought when there is nothing to measure it from, which is the same rule
+ * cardio and the history list follow.
+ */
+function describeWhen(workout: Workout): string {
+  const when = `${dayLabel(workout.date)} ${monthLabel(workout.date)}`;
+  const minutes = elapsedMinutes(workout.started_at, workout.finished_at);
+  return minutes === null ? when : `${when} · ${minutes} min`;
 }
 
 /**
