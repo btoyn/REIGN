@@ -10,7 +10,9 @@ import { TabBar } from "@/components/TabBar";
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <AuthGate>
-      <main className="px-gutter pt-safe flex-1">{children}</main>
+      <main className="px-gutter pt-safe flex-1">
+        <div className="flex flex-col pt-6 pb-8">{children}</div>
+      </main>
       <TabBar />
     </AuthGate>
   );

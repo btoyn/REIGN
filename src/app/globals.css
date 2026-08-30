@@ -20,16 +20,18 @@
 
   /*
     Type — spec "Typography".
-    System font stack only. No custom font is loaded.
+    Archivo, self-hosted by next/font. The fallback stack only ever shows if
+    the font fails to load, so it is a real stack rather than a formality.
   */
   --font-sans:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, sans-serif;
+    var(--font-archivo), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
 
-  /* Display — large metrics, used sparingly */
-  --text-display: 34px;
-  --text-display--line-height: 40px;
+  /* Display — the split name, large metrics. Condensed. Used sparingly. */
+  --text-display: 40px;
+  --text-display--line-height: 42px;
   --text-display--font-weight: 700;
+  --text-display--letter-spacing: 0.01em;
 
   /* Screen title — TODAY, PROGRAM, PROGRESS, YOU */
   --text-title: 13px;
@@ -79,6 +81,27 @@
     Only the screen gutter is named, since the spec fixes it at 20-24.
   */
   --spacing-gutter: 20px;
+}
+
+/*
+  Tabular figures everywhere.
+
+  A training log is columns of weights and reps. Proportional digits make 45,
+  135 and 315 ragged and slow to read, so every digit takes the same width.
+  Applied once here rather than remembered per component.
+*/
+body {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+  Condensed width, for the display and hero rungs. Same family, so the
+  interface keeps one voice.
+*/
+@layer utilities {
+  .font-condensed {
+    font-stretch: 75%;
+  }
 }
 
 /*

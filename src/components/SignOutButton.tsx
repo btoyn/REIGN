@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { secondaryAction } from "@/components/controls";
 import { getSupabase } from "@/lib/supabase";
 
 /**
@@ -26,7 +27,7 @@ export function SignOutButton() {
       type="button"
       onClick={onClick}
       disabled={busy}
-      className="text-button bg-surface text-ink border-border mt-8 h-14 w-full rounded-md border uppercase disabled:opacity-60"
+      className={secondaryAction}
     >
       {busy ? "Signing out" : "Sign out"}
     </button>

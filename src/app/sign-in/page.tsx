@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 import { Wordmark } from "@/components/Wordmark";
+import { primaryAction } from "@/components/controls";
 import { getSupabase } from "@/lib/supabase";
 
 /**
@@ -22,9 +23,11 @@ export default function SignInPage() {
 
   // Someone already signed in has no business on this screen.
   useEffect(() => {
-    getSupabase().auth.getSession().then(({ data }) => {
-      if (data.session) router.replace("/");
-    });
+    getSupabase()
+      .auth.getSession()
+      .then(({ data }) => {
+        if (data.session) router.replace("/");
+      });
   }, [router]);
 
   async function onSubmit(event: FormEvent) {
@@ -56,7 +59,10 @@ export default function SignInPage() {
       <h1 className="text-title text-muted pt-6 uppercase">Sign in</h1>
 
       <form onSubmit={onSubmit} className="mt-3">
-        <label htmlFor="email" className="text-label text-muted block uppercase">
+        <label
+          htmlFor="email"
+          className="text-label text-muted block uppercase"
+        >
           Email
         </label>
         <input
@@ -100,7 +106,7 @@ export default function SignInPage() {
         <button
           type="submit"
           disabled={busy}
-          className="text-button bg-accent text-bg active:bg-accent-pressed mt-8 h-14 w-full rounded-md uppercase disabled:opacity-60"
+          className={`${primaryAction} mt-8`}
         >
           {busy ? "Signing in" : "Sign in"}
         </button>

@@ -19,7 +19,8 @@ Real programs are browsable later, but following one is optional.
 STACK
 Next.js App Router, TypeScript, Tailwind, Supabase, Vercel.
 A web app added to the iPhone home screen. Not React Native, not Expo, not App Store.
-System font stack. No custom font.
+Archivo, loaded by next/font. Condensed width for headings and large numbers,
+regular width for body. Tabular figures on everywhere.
 
 DESIGN AUTHORITY
 docs/design/REIGN_UI_SPEC.md is the visual source of truth.

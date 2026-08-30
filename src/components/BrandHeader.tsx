@@ -35,9 +35,9 @@ export function BrandHeader() {
   const today = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   return (
-    <header className="pt-6">
+    <header className="flex flex-col gap-4">
       <Wordmark />
-      <p className="text-body text-muted mt-4 h-5">{today}</p>
+      <p className="text-body text-muted h-5">{today}</p>
     </header>
   );
 }

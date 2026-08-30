@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 
+import { Wordmark } from "@/components/Wordmark";
 import { getSupabase } from "@/lib/supabase";
 
 /**
@@ -54,9 +55,25 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }, [state, router]);
 
   if (state !== "in") {
-    // Deliberately bare. A spinner here would flash for a few milliseconds and
-    // read as jitter rather than progress.
-    return <main className="px-gutter pt-safe flex-1" aria-busy="true" />;
+    /*
+      Opening, not broken.
+
+      This used to be an empty page, which on a slow connection is
+      indistinguishable from an app that failed. The wordmark is the one thing
+      that is true before anything has loaded, and it is centred rather than in
+      the corner so this reads as the app opening rather than a screen that
+      lost its content. No spinner: it would flash for a few milliseconds and
+      read as jitter.
+    */
+    return (
+      <main
+        className="px-gutter pt-safe flex flex-1 items-center justify-center"
+        aria-busy="true"
+        aria-label="Opening REIGN"
+      >
+        <Wordmark />
+      </main>
+    );
   }
 
   return <>{children}</>;
