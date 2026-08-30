@@ -796,9 +796,9 @@ Reference competitive program screens only for information architecture, not bra
 
 ---
 
-# Progress Direction
+# Progress
 
-Progress should eventually emphasize:
+Progress should emphasize:
 
 - workout calendar
 - consistency
@@ -812,6 +812,54 @@ Metrics should be presented simply.
 Avoid analytics overload.
 
 Large numbers with restrained supporting labels are preferred over dense dashboards.
+
+## It is built in three parts
+
+The six lines above are a direction rather than a screen, and doing all of them
+at once is how a training log turns into a dashboard. They are built in the
+order they are worth having:
+
+1. **History** — every finished workout. This is the foundation, and it is the
+   first thing CLAUDE.md says REIGN does. Until it existed, a workout left the
+   screen when it was finished and could not be reached again.
+2. **Records** — the heaviest set of each exercise, and when it happened.
+   Calculated, never stored.
+3. **Trend and consistency** — one exercise's weight over time, and how often
+   training actually happens.
+
+Each reads the same rows. None of them needs a column added.
+
+## History
+
+Every finished workout, newest first. The one in progress is not here: it is on
+Today, which is the screen for the day you are in. A workout walked out of and
+never finished is not a record of anything, so it is not here either.
+
+**Each row is the split name, a line about the workout, and the day.**
+`Back` / `5 exercises · 52 min` / `Sunday 30`. The split name leads because that
+is what the day was, and it is how the owner thinks about it. A workout started
+outside the schedule has no split, so it reads `Workout` and the date carries
+it.
+
+**The line is assembled when rendering.** `5 exercises, 52 min` is the example
+CLAUDE.md uses for something that must never be a database column, and it is
+not one. A workout with no start time to measure from leaves the duration out
+rather than showing a nought or a dash, the same rule cardio follows.
+
+**Months are headings.** A year of training is a long list of dates, and a date
+on its own does not say how long ago it was. The heading gives the list a spine
+without adding a control or another tap.
+
+**A row opens the workout itself**, not a second read-only view of the same
+rows. The workout screen already shows a finished workout correctly: its
+exercises, the sets under each, and none of the controls. It now also says when
+it was and how long it took, because reached from here it needs to.
+
+**There is no primary action**, the way Program has none. This is a screen for
+reading. Starting a workout lives on Today, and repeating it here would put two
+primary actions in the app for the same thing.
+
+**Empty, it says what will fill it** rather than only that it is empty.
 
 ---
 
