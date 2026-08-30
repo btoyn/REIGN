@@ -199,6 +199,74 @@ History, PRs, strength trend. Large numbers, restrained labels, no dashboard gri
 
 ---
 
+## Slices inside the build, and what is queued behind them
+
+**Added later, during M2.** The milestones above are the shape of the build. The
+slices below are how M2 to M4 are actually being cut, agreed in conversation and
+written down here so "after slice E" means something.
+
+| Slice | What it is | State |
+|---|---|---|
+| A | Today's state machine: the split learns itself, and the Ready state | Built |
+| B | Real workouts: start, in progress, finish. `Discard workout` behind a confirmation step | Next |
+| A2 | Back to Today for `Resume` and `Done today`, which need a workout to exist before they can be built | After B |
+| C | The exercise picker rebuilt search-first, with Recent, Frequent and the six regions | |
+| D | Double progression suggestions | |
+| E | Rest timer with screen wake lock | |
+| F | PR detection and the last-time line | |
+
+---
+
+## Queued after slice E
+
+Two things deliberately deferred to this point. Neither is built. Do not start
+either one early.
+
+### Plate math
+
+Deferred during M2. Revisit once the rest timer exists.
+
+### Exercise alternatives
+
+Given any exercise, suggest substitutes.
+
+**How the ranking works.** Match on primary muscle and mechanic. Rank by
+*different* equipment first, since the usual reason for wanting a substitute is
+that the machine is taken. Secondary muscle overlap breaks ties.
+
+**Two entry points, and they are not the same thing.**
+
+- `Swap this exercise`, mid-workout, when a machine is taken. This is urgent and
+  wants the closest match immediately.
+- `Show me something different`, sorted by longest since last performed. This is
+  the variety feature applied to one exercise rather than to a muscle.
+
+**Pinned alternates.** The owner can pin his own alternates on any exercise. The
+tags will not always match real judgment, and where they disagree the owner's
+judgment wins. Pins rank above anything the matching produces.
+
+**What this actually needs, checked rather than assumed.** The intent was that
+this runs entirely off tags already in the exercises table with no schema change.
+Two thirds of that holds. Primary muscle, secondary muscles and equipment are all
+loaded and need nothing.
+
+`mechanic` is not. The Free Exercise DB carries it — 491 compound, 298 isolation,
+87 untagged out of 876 — but `supabase/seed/load_exercises.sql` selects only id,
+name, primary muscle, secondary muscles, equipment, category and instructions, so
+the column does not exist in the database. Adding it is one column and a re-run of
+the loader, which is idempotent. `force` (push, pull, static) is unloaded for the
+same reason and may be the better substitution signal; worth looking at when this
+is built rather than deciding now.
+
+Pinned alternates also need somewhere to live. No current table holds a pair of
+exercises, and `exercise_targets` is one row per exercise, so it is the wrong
+shape. That is a small new table, not a change to the seven.
+
+So: no change to the locked seven tables, one added column on the reference data,
+and one new table for the pins. Worth knowing before this is scheduled.
+
+---
+
 ## Tooling
 
 The original tooling list was written for a React Native build and no longer applies. This is the replacement.
