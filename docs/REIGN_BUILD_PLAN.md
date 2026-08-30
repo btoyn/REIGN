@@ -208,12 +208,56 @@ written down here so "after slice E" means something.
 | Slice | What it is | State |
 |---|---|---|
 | A | Today's state machine: the split learns itself, and the Ready state | Built |
-| B | Real workouts: start, in progress, finish. `Discard workout` behind a confirmation step | Next |
-| A2 | Back to Today for `Resume` and `Done today`, which need a workout to exist before they can be built | After B |
-| C | The exercise picker rebuilt search-first, with Recent, Frequent and the six regions | |
+| — | Program's weekday schedule, so a split can be corrected without touching the database | Built |
+| B | Real workouts: start, in progress, resume, finish. `Discard workout` behind a confirmation step. `Change today` | Built |
+| B2 | Set logging: weight and reps, with the custom number pad rather than the iOS keyboard | Built |
+| A2 | Back to Today for `Resume` and `Done today`, which need a workout to exist before they can be built | Built, with B |
+| C | The exercise picker rebuilt search-first, with Recent, Frequent and the six regions | Built |
+| C2 | The movement loop on the photographs, and hiding an exercise | Next |
 | D | Double progression suggestions | |
 | E | Rest timer with screen wake lock | |
 | F | PR detection and the last-time line | |
+
+Two additions, decided while building M2:
+
+- **Multi-muscle splits, after B.** `Push` is chest, shoulders and triceps. The
+  data model already allows it; the control does not. Small, and it removes the
+  limitation immediately.
+- **Programs, after D.** Entering one is miserable without the search-first
+  picker, and prescribed rep ranges are decoration without double progression.
+  This pulls the program half of M6 ahead of M5 variety, deliberately: variety
+  exists for improvised days, and following a program means fewer of them.
+
+---
+
+## Change today, and why it waits for slice B
+
+Two different actions, separated in `docs/design/REIGN_UI_SPEC.md`:
+
+- **`Change today`** — chest is right for Mondays, wrong for this Monday. Lives
+  on Today. **Ships with slice B.**
+- **Changing Mondays** — chest is no longer what Mondays are. Lives in Program.
+  Built.
+
+`Change today` waits for slice B because the override is not stored anywhere of
+its own. `workouts.split_name` is a copy rather than a reference, so a workout
+started after the override records `Back` while the split row still says
+`Chest`. The deviation is recorded by the workout it produces. Until a workout
+can be created there is nothing to record it on, and the control would change a
+heading and forget.
+
+### Read this before reporting it as a bug
+
+**Once `Change today` ships: changing today does not survive a reload until you
+start a workout.**
+
+That is deliberate, not a lost write. Nothing has happened yet, so there is
+nothing to remember, and tomorrow is a different day anyway. The moment a
+workout exists, the change is permanent in that workout's own record.
+
+If the change needs to survive a reload before any workout exists, that is a
+different feature and needs somewhere to store a pending override. Say so and it
+gets designed rather than bolted on.
 
 ---
 

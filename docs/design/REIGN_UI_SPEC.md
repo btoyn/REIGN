@@ -266,8 +266,13 @@ Top area, on every state:
 - current date
 
 Then a single block whose content depends on the state below, then the primary
-action, then a quiet text link, `Something else`, which opens the exercise
-picker to improvise.
+action, then a quiet text link, `Change today`, which reopens the six regions so
+the day's focus can be corrected.
+
+`Change today` replaces the earlier `Something else`. That label described a
+gesture rather than a decision, and it read as "add an exercise" instead of
+"the plan is wrong today". Same verb as the permanent change in Program, with
+the object naming the scope.
 
 `LAST WORKOUT` sits beneath all of it once there is history. `CARDIO` arrives
 with manual entry.
@@ -294,7 +299,7 @@ about a day the owner has not reached yet.
 - `BACK` — the split name, display size
 - the program or split name beneath it
 - `START WORKOUT`
-- `Something else`
+- `Change today`
 
 ### In progress
 
@@ -311,23 +316,170 @@ one.
 
 - `BACK`
 - `Finished · 52 min · 18 sets`
-- No primary button. `Something else` becomes the only action.
+- No primary button. `Change today` becomes the only action.
 
 ### Rest day
 
 - `Rest day`
-- No primary button. `Something else` only.
+- No primary button. `Change today` only.
 
 ---
 
 ## Where "what's next" comes from
 
-From the weekday split. Programs are a later milestone and Today does not read
-from them yet, because the data model has no concept of an activated program and
-locking that model matters more than the feature does.
+Today reads the active program first, and falls back to the weekday split.
 
-When programs arrive, they take precedence over the split, and this section is
-revised then rather than anticipated now.
+A program day assigned to this weekday wins. If there is none, the weekday split
+answers. The six regions stay exactly as they are for days that are improvised,
+which is most of them when no program is active.
+
+Until programs are built, only the split answers, and that is the whole rule.
+
+---
+
+## Changing today, and changing the weekday
+
+Two different actions. They differ only in scope, so the interface says so:
+
+- **`Change today`** — chest is right for Mondays, wrong for this Monday.
+- **Changing Mondays** — chest is no longer what Mondays are.
+
+Same verb, different object. Nothing else needs explaining.
+
+### Change today lives on Today
+
+A quiet text link under the split name. It reopens the six regions plus
+`Rest day`, the same choice the weekday was first answered with. Picking one
+proceeds as that region.
+
+It sits where the wrong answer is visible, and it is the urgent case, since the
+owner is standing in the gym. It is a link and not a button so `START WORKOUT`
+stays the only dominant action.
+
+**The override is not stored.** `workouts.split_name` is a copy rather than a
+reference, so a workout started after the override records `Back` while the
+split row still says `Chest`. The deviation is recorded by the workout it
+produced, and there is nothing else to keep.
+
+**Consequence, stated so it is not mistaken for a bug: before a workout exists,
+`Change today` does not survive a reload.** Nothing has happened yet, so there
+is nothing to remember, and tomorrow is a different day. This is why
+`Change today` ships with the workout engine and not before it — until a workout
+can be created, the control would change a heading and forget.
+
+### Changing the weekday lives in Program
+
+The seven weekdays and what each one is. Days not yet reached are shown as
+unanswered rather than left blank. Changing one is permanent, and is the same
+write Today does when it first learns a day.
+
+It belongs there because it is the whole schedule rather than one day, it is a
+considered edit made rarely, and `program schedule` is already in Program
+Direction below.
+
+**Today does not prompt after a one-off change.** Offering "Mondays are still
+chest, change that?" would turn a rare correction into a recurring question.
+The tab is one tap away.
+
+---
+
+# Program — the weekday schedule
+
+The first real content in the Program tab. Browsable programs remain a later
+milestone; this is the split, which is what Today actually reads.
+
+## Why it exists now
+
+Today writes the split and cannot edit it. A value the app can write but not
+correct is a broken feature, not a lean one — reaching the choice again meant
+deleting a database row.
+
+## The screen
+
+Seven rows, Monday first, because the training week starts on Monday even though
+the database counts from Sunday.
+
+Each row carries the weekday and its split name. A day that has never been
+answered says so plainly rather than showing an empty space that reads as a
+failed load.
+
+`Rest day` is settable here, not only in Today's first question. A weekday split
+has rest days in it and the schedule cannot be honest without them.
+
+The screen has no primary action. It is a list of seven things, all equal, and
+promoting any one of them would be a lie about which day matters.
+
+## What it must handle
+
+Loading, error, and the case where no day has been answered yet. There is no
+empty state beyond that: the seven weekdays always exist, answered or not.
+
+---
+
+# Program — following a real program
+
+A later milestone than the weekday schedule above, specified here because it
+shapes decisions being made now.
+
+## A split day is not always one region
+
+`Push` is chest, shoulders and triceps. `Pull` is back and biceps. The six
+regions describe what to train on an improvised day; they do not describe a
+program's days, and forcing them to would misdescribe the training.
+
+`splits.target_muscles` is already a list, so this needs no change to the data
+model. What needs changing is the control: choosing regions becomes multi-select
+with a name, so `chest + shoulders + triceps` can be called `Push`. Today then
+says `PUSH`, and improvising within it opens the picker filtered to all three.
+
+## Programs are the owner's data, never shipped
+
+The repository ships the structure. The owner's database holds their copy of
+what they follow.
+
+No program is built in. There is no seed file, no bundled program data, and no
+`built-in programs` concept. A program is entered through the exercise picker
+like anything else, which also means the stored reference is REIGN's own
+exercise, so there is no name-mapping table to build or maintain.
+
+This is a design constraint, not a preference. Shipping a published program's
+contents as application data would be someone else's material redistributed.
+
+## Shape
+
+Three tables, added beside the seven rather than altering any of them:
+
+- a program: a name, and whether it is active
+- a program day: its name, its muscles, and the weekday it is assigned to, which
+  may be empty
+- a program day's exercises: which, in what order, with sets and a rep range
+
+The assignment lives on the program day. `splits` stays exactly what it is: what
+is trained on a weekday when no program is driving.
+
+`workouts.split_name` still copies the day's name onto the workout, so history
+survives a program being changed or deleted.
+
+## What Today says
+
+`PUSH`, then `Bigger Leaner Stronger · Monday`.
+
+**Not a day number.** `Day 1` reintroduces the program day counter that
+`CLAUDE.md` forbids and that this specification's `Week 6 - Day 4` was corrected
+for. The weekday already separates Monday's `Push` from Thursday's `Push`, so
+the number carries nothing but the feeling of being on a schedule.
+
+## Rep ranges seed, they do not override
+
+`exercise_targets` holds one rep range per exercise for the whole app, which is
+the statement that a lift has a rep range. A program day prescribing its own
+ranges is a different statement, and having both would leave double progression
+reading a row that changes meaning depending on which day it was written from.
+
+A program day's ranges **seed** `exercise_targets` the first time that exercise
+is used, and after that the per-exercise row is the truth. That keeps the
+progression rule reading one place, and matches how the owner actually
+progresses: per lift, not per day.
 
 ---
 
@@ -357,7 +509,7 @@ The Today screen should remain sparse.
 # Exercise Picker
 
 The picker is reached from `Add exercise` during a workout, from
-`Something else` on Today, and when choosing what to train on a new weekday.
+`Change today` on Today, and when choosing what to train on a new weekday.
 
 ## Order on the screen
 
@@ -387,6 +539,111 @@ Neck, abductors and adductors are nested and never top level.
 | Core | abdominals |
 
 This covers all seventeen muscles the exercise library tags.
+
+## What appears in browse
+
+The library is 876 exercises, most of which the owner will never do. Browse is
+trimmed to what a commercial gym holds:
+
+- category `strength` or `powerlifting`
+- equipment is not `kettlebells`, `bands`, `medicine ball`, `exercise ball`,
+  `foam roll`, `other`, or empty
+- the name does not contain `chain` or `band`, which removes the seventeen
+  bar-and-chain variations that need equipment a commercial gym does not have
+
+That leaves **462**. Chest goes from 84 to 55, Legs from 298 to 93.
+
+Nothing is deleted from the database and nothing becomes unreachable. The trim
+applies to **browse only**. Search reaches the whole library, so a stretch or a
+strongman lift is still one query away.
+
+## Recent and Frequent
+
+These carry most of the traffic once there is any history, and they matter more
+than the hierarchy below them. Both sit above browse and above the fold.
+
+**Recent** — the last ten distinct exercises, most recently used first.
+**Frequent** — the most logged, by how many workouts contain them.
+
+Both are read from the owner's own workouts, not from the library, so neither is
+filtered by the trim: an exercise that has been done belongs in these lists
+whatever its category.
+
+Both are absent until there is history. An empty list is worse than no list.
+
+## Search
+
+Search reaches everything and is the primary entry point, because most of the
+time the owner knows the name.
+
+**It has to work on the names the owner uses, not the library's.** Three rules,
+in this order:
+
+1. **Normalise both sides** — fold case, strip punctuation and hyphens, collapse
+   whitespace. This alone makes `skullcrusher` find `Skull Crusher` and
+   `bench press` find `Bench Press - Powerlifting`.
+2. **Aliases**, hand written and editable, for the terms the library simply does
+   not use. `overhead press` and `RDL` both return nothing without them.
+3. **Ranking, kept simple** — exact name, then name begins with the query, then
+   shortest name. Deliberately not clever: a query like `curl` matches 66
+   exercises and no ranking makes 66 into an answer. Recent solves that once
+   three curl variations have been logged.
+
+## The second level, per region
+
+It differs by region, because the regions differ. Each is chosen from what makes
+that region scannable, not from one rule applied six times.
+
+| Region | Count | Second level | Why |
+|---|---|---|---|
+| Chest | 55 | Equipment | One muscle, so sub-muscle does not exist. Five even buckets. |
+| Back | 55 | Sub-muscle | lats 20, middle back 19, traps 10, lower back 6. This is the variety the owner asked for, and it separates a lat day from a trap day. |
+| Shoulders | 74 | Equipment | Sub-muscle is useless here: shoulders 72, neck 2. |
+| Arms | 122 | Sub-muscle | triceps 57, biceps 48, forearms 17. By equipment the largest bucket would be 49 and mixed. |
+| Legs | 93 | Sub-muscle | quadriceps 50, hamstrings 18, calves 12, glutes 11. By equipment, barbell alone is 39. |
+| Core | 63 | None | By equipment it is body only 38 and four scraps; by muscle it is one bucket of 63. A second level would be a pile and some crumbs, so the list is flat. |
+
+**Long buckets carry equipment headings inside them.** Quadriceps at 50 and
+triceps at 57 are still long after the split. They are grouped under `Barbell`,
+`Dumbbell`, `Cable`, `Machine`, `Bodyweight` headings within the one list, so the
+owner can jump to the section rather than read every row. This is structure in
+the list, not another tap.
+
+## Photographs
+
+Every exercise has two: the start of the movement and the end. They alternate on
+a slow loop, so what a movement actually is can be seen rather than read.
+
+The paths are derived from the exercise id — `<id>/0.jpg` and `<id>/1.jpg` — so
+this needs no column, no migration and no stored data. All 462 in the trimmed
+set have both. The three in the whole library without them are kettlebell
+movements the trim already removes.
+
+No muscle diagrams. The muscle is already written down; what text cannot show is
+the movement.
+
+### When an image does not load
+
+It will, on gym wifi. Three rules:
+
+1. **The frame reserves its aspect ratio from the first paint.** Nothing moves
+   when the photographs arrive, and nothing moves when they fail.
+2. **A failure is a sentence, never a broken image icon.** The reserved frame
+   holds a quiet line saying the photographs could not be loaded.
+3. **The frame is tappable to try again.** No new control: the box is already
+   there, and a second attempt is what anyone would want.
+
+## Hidden exercises
+
+The owner can hide an exercise they will never do. Personal curation beats any
+filter guessed in advance, and it means the trim above does not have to be
+perfect.
+
+A hidden exercise disappears from browse and from search. Search carries a
+`Show hidden` escape, so nothing is ever permanently unreachable.
+
+This is the one part of the picker that needs storage: one small table, added
+beside the seven rather than altering any of them.
 
 ---
 

@@ -1,26 +1,32 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { BrandHeader } from "@/components/BrandHeader";
+import { RegionChoice } from "@/components/RegionChoice";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { Skeleton } from "@/components/Skeleton";
+import { primaryAction, quiet, secondaryAction } from "@/components/controls";
 import {
-  choice,
-  primaryAction,
-  quiet,
-  secondaryAction,
-} from "@/components/controls";
-import { REGIONS } from "@/lib/regions";
-import {
-  REST_DAY_NAME,
   Split,
+  WEEKDAYS,
   fetchSplitForDay,
   isRestDay,
   saveSplitForDay,
   todayDayOfWeek,
 } from "@/lib/splits";
+import {
+  Workout,
+  WorkoutCounts,
+  discardWorkout,
+  fetchWorkoutCounts,
+  fetchWorkoutForDate,
+  durationMinutes,
+  isInProgress,
+  startWorkout,
+  todayDate,
+} from "@/lib/workouts";
 
 /**
  * Today.
@@ -30,81 +36,130 @@ import {
  * It reads the answer from the weekday split rather than asking every time,
  * because the owner trains the same thing every Monday and starting training
  * should not require a decision. The split assembles itself: the first time a
- * weekday comes around the screen asks once, records the answer, and never
- * asks about that day again. There is no setup wizard.
+ * weekday comes around the screen asks once, records the answer, and never asks
+ * about that day again.
  *
- * Two of the spec's five states are missing here on purpose. `In progress` and
- * `Done today` both describe a workout, and nothing creates a workout yet, so
- * building them now would mean building states no data can ever reach. They
- * arrive with the logging engine.
+ * All five of the spec's states are here now that workouts exist.
  */
 
-type State =
+type Data =
   | { status: "loading" }
   | { status: "error" }
-  /** This weekday has never been answered. */
-  | { status: "asking"; saving: string | null }
-  | { status: "known"; split: Split };
+  | {
+      status: "loaded";
+      /** Null when this weekday has never been answered. */
+      split: Split | null;
+      /** The most recent workout dated today, if there is one. */
+      workout: Workout | null;
+      counts: WorkoutCounts;
+    };
 
-const WEEKDAYS = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
+/** A one-off deviation. Deliberately not stored — see the spec. */
+type Override = { name: string; muscles: string[] };
 
 export default function TodayPage() {
-  const [state, setState] = useState<State>({ status: "loading" });
-  // Read once and held, so the screen cannot answer for one day and save
+  const router = useRouter();
+  const [data, setData] = useState<Data>({ status: "loading" });
+  const [attempt, setAttempt] = useState(0);
+
+  // Read once and held, so the screen cannot answer for one day and write
   // against another if it is left open across midnight.
   const [dayOfWeek] = useState(todayDayOfWeek);
+  const [date] = useState(todayDate);
 
-  // Bumped by Try again. Changing it re-runs the read below; the screen is
-  // already in its loading state before the effect runs, so the effect body
-  // never sets state synchronously.
-  const [attempt, setAttempt] = useState(0);
+  // Screen state rather than stored state.
+  const [override, setOverride] = useState<Override | null>(null);
+  const [changing, setChanging] = useState(false);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
 
-    fetchSplitForDay(dayOfWeek)
-      .then((split) => {
-        if (!active) return;
-        setState(
-          split
-            ? { status: "known", split }
-            : { status: "asking", saving: null },
-        );
+    Promise.all([fetchSplitForDay(dayOfWeek), fetchWorkoutForDate(date)])
+      .then(async ([split, workout]) => {
+        const counts = workout
+          ? await fetchWorkoutCounts(workout.id)
+          : { exercises: 0, sets: 0 };
+        if (active) setData({ status: "loaded", split, workout, counts });
       })
       .catch((e: Error) => {
-        // The underlying message is technical and means nothing to the person
-        // reading it, so it goes to the console and the screen says what
-        // actually happened.
-        console.error("fetchSplitForDay failed", e);
-        if (active) setState({ status: "error" });
+        // Technical wording is no use to whoever is reading it, so it goes to
+        // the console and the screen says what actually happened.
+        console.error("Today failed to load", e);
+        if (active) setData({ status: "error" });
       });
 
     return () => {
       active = false;
     };
-  }, [dayOfWeek, attempt]);
+  }, [dayOfWeek, date, attempt]);
 
-  function retry() {
-    setState({ status: "loading" });
+  function reload() {
+    setData({ status: "loading" });
     setAttempt((n) => n + 1);
   }
 
-  async function answer(name: string, muscles: string[]) {
-    setState({ status: "asking", saving: name });
+  function retry() {
+    setConfirmingDiscard(false);
+    setChanging(false);
+    reload();
+  }
+
+  /** Answering the weekday question. This one is permanent. */
+  async function answerWeekday(name: string, muscles: string[]) {
+    setSaving(name);
     try {
       const split = await saveSplitForDay(dayOfWeek, name, muscles);
-      setState({ status: "known", split });
+      setData((current) =>
+        current.status === "loaded" ? { ...current, split } : current,
+      );
     } catch (e) {
       console.error("saveSplitForDay failed", e);
-      setState({ status: "error" });
+      setData({ status: "error" });
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  /**
+   * Change today.
+   *
+   * Nothing is written. The deviation is recorded by the workout it produces,
+   * through the copied split_name, so before a workout exists there is nothing
+   * to remember and this does not survive a reload. That is documented in the
+   * spec and the build plan rather than left to be discovered.
+   */
+  function changeToday(name: string, muscles: string[]) {
+    setOverride({ name, muscles });
+    setChanging(false);
+  }
+
+  async function start(splitName: string) {
+    setBusy(true);
+    try {
+      const workout = await startWorkout(date, splitName);
+      router.push(`/workout/${workout.id}`);
+    } catch (e) {
+      console.error("startWorkout failed", e);
+      setData({ status: "error" });
+      setBusy(false);
+    }
+  }
+
+  async function discard(id: string) {
+    setBusy(true);
+    try {
+      await discardWorkout(id);
+      setConfirmingDiscard(false);
+      setOverride(null);
+      reload();
+    } catch (e) {
+      console.error("discardWorkout failed", e);
+      setData({ status: "error" });
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -115,29 +170,83 @@ export default function TodayPage() {
       <div className="flex flex-col gap-3">
         <ScreenTitle>Today</ScreenTitle>
 
-        {state.status === "loading" ? <LoadingBlock /> : null}
-        {state.status === "error" ? <ErrorBlock onRetry={retry} /> : null}
-        {state.status === "asking" ? (
-          <AskBlock
-            weekday={WEEKDAYS[dayOfWeek]}
-            saving={state.saving}
-            onAnswer={answer}
-          />
-        ) : null}
-        {state.status === "known" ? (
-          <KnownBlock split={state.split} weekday={WEEKDAYS[dayOfWeek]} />
-        ) : null}
+        {data.status === "loading" ? <LoadingBlock /> : null}
+        {data.status === "error" ? <ErrorBlock onRetry={retry} /> : null}
+
+        {data.status === "loaded"
+          ? renderLoaded({
+              data,
+              weekday: WEEKDAYS[dayOfWeek],
+              override,
+              changing,
+              saving,
+              confirmingDiscard,
+              busy,
+              onAnswerWeekday: answerWeekday,
+              onChangeToday: changeToday,
+              onOpenChange: () => setChanging(true),
+              onCancelChange: () => setChanging(false),
+              onStart: start,
+              onResume: (id: string) => router.push(`/workout/${id}`),
+              onAskDiscard: () => setConfirmingDiscard(true),
+              onCancelDiscard: () => setConfirmingDiscard(false),
+              onDiscard: discard,
+            })
+          : null}
       </div>
     </div>
   );
+}
+
+type LoadedProps = {
+  data: Extract<Data, { status: "loaded" }>;
+  weekday: string;
+  override: Override | null;
+  changing: boolean;
+  saving: string | null;
+  confirmingDiscard: boolean;
+  busy: boolean;
+  onAnswerWeekday: (name: string, muscles: string[]) => void;
+  onChangeToday: (name: string, muscles: string[]) => void;
+  onOpenChange: () => void;
+  onCancelChange: () => void;
+  onStart: (splitName: string) => void;
+  onResume: (id: string) => void;
+  onAskDiscard: () => void;
+  onCancelDiscard: () => void;
+  onDiscard: (id: string) => void;
+};
+
+/** Which of the five states this is. Order matters: a workout outranks a plan. */
+function renderLoaded(p: LoadedProps) {
+  const { data } = p;
+
+  if (data.workout && isInProgress(data.workout)) {
+    return <InProgressBlock {...p} workout={data.workout} />;
+  }
+
+  if (data.workout) {
+    return <DoneBlock {...p} workout={data.workout} />;
+  }
+
+  if (!data.split) {
+    return (
+      <AskBlock
+        weekday={p.weekday}
+        saving={p.saving}
+        onAnswer={p.onAnswerWeekday}
+      />
+    );
+  }
+
+  return <PlannedBlock {...p} split={data.split} />;
 }
 
 /**
  * Loading.
  *
  * Shaped like the answer it is waiting for, so the screen does not jump when
- * the real content lands. "Loading…" as text would be a smaller lie in the
- * same place.
+ * the real content lands.
  */
 function LoadingBlock() {
   return (
@@ -154,7 +263,7 @@ function ErrorBlock({ onRetry }: { onRetry: () => void }) {
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
         <p role="alert" className="text-lead text-ink">
-          Could not load your split.
+          Could not load today.
         </p>
         <p className="text-body text-muted">
           Check your connection and try again. Nothing has been lost.
@@ -177,8 +286,6 @@ function AskBlock({
   saving: string | null;
   onAnswer: (name: string, muscles: string[]) => void;
 }) {
-  const busy = saving !== null;
-
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
@@ -190,85 +297,255 @@ function AskBlock({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        {REGIONS.map((region) => (
-          <button
-            key={region.name}
-            type="button"
-            disabled={busy}
-            onClick={() => onAnswer(region.name, region.muscles)}
-            className={
-              saving === region.name
-                ? `${choice} border-accent text-accent`
-                : choice
-            }
-          >
-            {saving === region.name ? "Saving" : region.name}
-          </button>
-        ))}
-      </div>
+      <RegionChoice saving={saving} onChoose={onAnswer} />
+    </div>
+  );
+}
 
-      {/*
-        A rest day is a recorded answer, not a missing one: a split with a name
-        and no muscles. Quieter than the six, because it is the less common
-        answer, but it is a real choice and not a way out of the question.
-      */}
+/** The display name over its source line. Every state that has a plan shows it. */
+function Headline({ name, source }: { name: string; source: string | null }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="text-display text-ink font-condensed uppercase">{name}</p>
+      {source ? <p className="text-body text-muted">{source}</p> : null}
+    </div>
+  );
+}
+
+/** Ready, or a rest day. Both know what the day is; only one has a workout in it. */
+function PlannedBlock({
+  split,
+  weekday,
+  override,
+  changing,
+  busy,
+  onChangeToday,
+  onOpenChange,
+  onCancelChange,
+  onStart,
+}: LoadedProps & { split: Split }) {
+  const name = override?.name ?? split.name;
+  const resting = override === null && isRestDay(split);
+
+  if (changing) {
+    return (
+      <ChangingBlock
+        heading="What are you training today?"
+        note="Just today. Every other {weekday} stays as it is."
+        weekday={weekday}
+        onChoose={onChangeToday}
+        onCancel={onCancelChange}
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <Headline
+        name={name}
+        source={
+          override
+            ? `Instead of ${split.name} · just today`
+            : resting
+              ? null
+              : `Weekday split · ${weekday}`
+        }
+      />
+
+      {resting ? (
+        <p className="text-body text-muted">
+          Nothing scheduled for {weekday}s.
+        </p>
+      ) : (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onStart(name)}
+          className={primaryAction}
+        >
+          {busy ? "Starting" : "Start Workout"}
+        </button>
+      )}
+
       <button
         type="button"
-        disabled={busy}
-        onClick={() => onAnswer(REST_DAY_NAME, [])}
-        className={`${choice} text-body text-muted`}
+        onClick={onOpenChange}
+        className={`${quiet} self-start`}
       >
-        {saving === REST_DAY_NAME ? "Saving" : REST_DAY_NAME}
+        Change today
       </button>
     </div>
   );
 }
 
-/** Ready, or a rest day. Both are a known split; only one has a workout in it. */
-function KnownBlock({ split, weekday }: { split: Split; weekday: string }) {
-  const resting = isRestDay(split);
+/**
+ * In progress.
+ *
+ * A workout exists with no finish time, so there is no offer to start a second
+ * one. Discard is quiet and behind a confirmation: one mis-tap mid-session must
+ * not destroy a workout.
+ */
+function InProgressBlock({
+  workout,
+  data,
+  confirmingDiscard,
+  busy,
+  onResume,
+  onAskDiscard,
+  onCancelDiscard,
+  onDiscard,
+}: LoadedProps & { workout: Workout }) {
+  if (confirmingDiscard) {
+    return (
+      <div className="flex flex-col gap-5">
+        <Headline name={workout.split_name ?? "Workout"} source={null} />
+        <div className="flex flex-col gap-2">
+          <p className="text-lead text-ink">Discard this workout?</p>
+          <p className="text-body text-muted">
+            {describe(data.counts)} will be deleted. This cannot be undone.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onDiscard(workout.id)}
+          className={secondaryAction}
+        >
+          {busy ? "Discarding" : "Discard workout"}
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onCancelDiscard}
+          className={`${quiet} self-start`}
+        >
+          Keep it
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-1">
-        <p className="text-display text-ink font-condensed uppercase">
-          {split.name}
-        </p>
-        {/*
-          Where this came from, not what it is. Naming the split again under
-          itself would be decoration. Programs will replace this line when they
-          take precedence, which is a later milestone.
-
-          A rest day has no source worth naming — calling it a split under the
-          words REST DAY is noise — so its sentence below carries the whole
-          explanation instead.
-        */}
-        {resting ? null : (
-          <p className="text-body text-muted">Weekday split · {weekday}</p>
-        )}
-      </div>
-
-      {resting ? (
-        <div className="flex flex-col gap-5">
-          <p className="text-body text-muted">
-            Nothing scheduled for {weekday}s. Training anyway is one tap away.
-          </p>
-          <Link href="/exercises" className={quiet}>
-            Something else
-          </Link>
-        </div>
-      ) : (
-        /*
-          One primary action, no pair. `Something else` belongs beside this
-          button in the spec, but until workouts exist it would go to the same
-          screen START WORKOUT goes to, and two controls that do the identical
-          thing are worse than one. It returns when the two differ.
-        */
-        <Link href="/exercises" className={primaryAction}>
-          Start Workout
-        </Link>
-      )}
+      <Headline
+        name={workout.split_name ?? "Workout"}
+        source={`In progress · ${describe(data.counts)}`}
+      />
+      <button
+        type="button"
+        onClick={() => onResume(workout.id)}
+        className={primaryAction}
+      >
+        Resume Workout
+      </button>
+      <button
+        type="button"
+        onClick={onAskDiscard}
+        className={`${quiet} self-start`}
+      >
+        Discard workout
+      </button>
     </div>
   );
+}
+
+/**
+ * Done today.
+ *
+ * No primary button: the day's training is recorded. `Change today` is the only
+ * action, and after a finished workout the only thing it can mean is training
+ * something else now, so choosing a region starts a second workout.
+ */
+function DoneBlock({
+  workout,
+  data,
+  changing,
+  weekday,
+  busy,
+  onChangeToday,
+  onOpenChange,
+  onCancelChange,
+  onStart,
+}: LoadedProps & { workout: Workout }) {
+  if (changing) {
+    return (
+      <ChangingBlock
+        heading="Train something else?"
+        note="Today is already recorded. This starts a second workout."
+        weekday={weekday}
+        onChoose={(name, muscles) => {
+          onChangeToday(name, muscles);
+          onStart(name);
+        }}
+        onCancel={onCancelChange}
+      />
+    );
+  }
+
+  const minutes = durationLine(workout);
+
+  return (
+    <div className="flex flex-col gap-5">
+      <Headline
+        name={workout.split_name ?? "Workout"}
+        source={`Finished${minutes} · ${describe(data.counts)}`}
+      />
+      <button
+        type="button"
+        disabled={busy}
+        onClick={onOpenChange}
+        className={`${quiet} self-start`}
+      >
+        Change today
+      </button>
+    </div>
+  );
+}
+
+/** The six regions again, with wording that says what changing means here. */
+function ChangingBlock({
+  heading,
+  note,
+  weekday,
+  onChoose,
+  onCancel,
+}: {
+  heading: string;
+  note: string;
+  weekday: string;
+  onChoose: (name: string, muscles: string[]) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2">
+        <h2 className="text-hero text-ink font-condensed">{heading}</h2>
+        <p className="text-body text-muted">
+          {note.replace("{weekday}", weekday)}
+        </p>
+      </div>
+
+      <RegionChoice saving={null} onChoose={onChoose} />
+
+      <button
+        type="button"
+        onClick={onCancel}
+        className={`${quiet} self-start`}
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
+
+/** "2 exercises · 5 sets". Assembled here, never a database column. */
+function describe(counts: WorkoutCounts): string {
+  const exercises = `${counts.exercises} ${counts.exercises === 1 ? "exercise" : "exercises"}`;
+  const sets = `${counts.sets} ${counts.sets === 1 ? "set" : "sets"}`;
+  return `${exercises} · ${sets}`;
+}
+
+function durationLine(workout: Workout): string {
+  const minutes = durationMinutes(workout);
+  return minutes === null ? "" : ` · ${minutes} min`;
 }
