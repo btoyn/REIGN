@@ -1,15 +1,16 @@
 import { fetchExercisesByIds, type Exercise } from "@/lib/exercises";
 import { getSupabase } from "@/lib/supabase";
+import { todayDate } from "@/lib/workouts";
 
 /**
- * Recent and Frequent.
+ * What the owner has actually done, read once.
  *
- * Both are read from what the owner has actually done, not from the library, so
- * neither is touched by the trim that browse applies. An exercise that has been
- * logged belongs in these lists whatever its category.
+ * Recent, Frequent and how long since each exercise was last performed all come
+ * from the same two tables, so they are read together rather than three times
+ * over. The picker asks for all of it at once.
  *
- * Both are empty until there is history, and an empty list is worse than no
- * list, so the screen leaves them out entirely until they have something.
+ * None of this is touched by the trim that browse applies: an exercise that has
+ * been logged belongs here whatever its category.
  */
 
 /** How many workouts back Recent looks. Ten distinct exercises is three or four. */
@@ -18,85 +19,126 @@ const RECENT_WORKOUTS = 12;
 export const RECENT_LIMIT = 10;
 export const FREQUENT_LIMIT = 10;
 
-/**
- * The last ten distinct exercises, most recently used first.
- *
- * Read as two queries rather than one join: the recent workouts, then what was
- * in them. workout_exercises carries no time of its own, so the order has to
- * come from the workout it belongs to.
- */
-export async function fetchRecentExercises(): Promise<Exercise[]> {
+export type TrainingHistory = {
+  /** The last ten distinct exercises, most recently used first. */
+  recent: Exercise[];
+  /** The most logged, by how many workouts contain them. */
+  frequent: Exercise[];
+  /** Exercise id to the date it was last performed, as YYYY-MM-DD. */
+  lastPerformed: Map<string, string>;
+};
+
+const EMPTY: TrainingHistory = {
+  recent: [],
+  frequent: [],
+  lastPerformed: new Map(),
+};
+
+export async function fetchTrainingHistory(): Promise<TrainingHistory> {
   const supabase = getSupabase();
 
-  const { data: workouts, error: workoutError } = await supabase
-    .from("workouts")
-    .select("id, started_at")
-    .order("started_at", { ascending: false })
-    .limit(RECENT_WORKOUTS);
-
-  if (workoutError) throw new Error(workoutError.message);
-  if (!workouts || workouts.length === 0) return [];
-
-  const order = new Map(workouts.map((w, i) => [w.id, i]));
-
-  const { data: entries, error: entryError } = await supabase
-    .from("workout_exercises")
-    .select("workout_id, exercise_id, position")
-    .in(
-      "workout_id",
-      workouts.map((w) => w.id),
-    );
+  const [
+    { data: entries, error: entryError },
+    { data: workouts, error: workoutError },
+  ] = await Promise.all([
+    supabase
+      .from("workout_exercises")
+      .select("workout_id, exercise_id, position"),
+    supabase.from("workouts").select("id, date, started_at, finished_at"),
+  ]);
 
   if (entryError) throw new Error(entryError.message);
+  if (workoutError) throw new Error(workoutError.message);
+  if (!entries || entries.length === 0) return EMPTY;
 
-  // Newest workout first, and within a workout the order it was performed in.
-  const sorted = [...(entries ?? [])].sort((a, b) => {
-    const byWorkout =
-      (order.get(a.workout_id) ?? 0) - (order.get(b.workout_id) ?? 0);
-    return byWorkout !== 0 ? byWorkout : a.position - b.position;
-  });
+  /*
+    A workout counts once it is finished, and today's counts while it is still
+    being done.
 
-  const seen: string[] = [];
-  for (const e of sorted) {
-    if (!seen.includes(e.exercise_id)) seen.push(e.exercise_id);
-    if (seen.length === RECENT_LIMIT) break;
-  }
+    Both halves matter. Without the first, a workout walked out of half way
+    through would make an exercise look performed when it may never have been,
+    which is exactly the lie variety must not tell. Without the second, nothing
+    added in the last hour would appear in Recent, and Recent is what the owner
+    reaches for while standing in the gym.
 
-  return inOrder(seen, await fetchExercisesByIds(seen));
-}
+    An abandoned workout is indistinguishable from one in progress until the day
+    is over, so the date is what separates them.
+  */
+  const today = todayDate();
+  const byId = new Map(
+    (workouts ?? [])
+      .filter((w) => w.finished_at !== null || w.date === today)
+      .map((w) => [w.id, w]),
+  );
 
-/**
- * The most logged exercises.
- *
- * Counted here rather than in the database, because PostgREST has no group by.
- * This reads one short column across every workout ever logged: five workouts a
- * week of six exercises is about 1,500 rows a year, which is small enough that
- * counting them is cheaper than the alternatives.
- */
-export async function fetchFrequentExercises(): Promise<Exercise[]> {
-  const { data, error } = await getSupabase()
-    .from("workout_exercises")
-    .select("exercise_id");
+  // Newest first, by when the workout started. Two workouts on one day share a
+  // date, so ordering on the date alone ties and the order is then whatever the
+  // database returned.
+  const order = [...byId.values()]
+    .sort((a, b) =>
+      (b.started_at ?? b.date).localeCompare(a.started_at ?? a.date),
+    )
+    .map((w) => w.id);
+  const rank = new Map(order.map((id, index) => [id, index]));
 
-  if (error) throw new Error(error.message);
-  if (!data || data.length === 0) return [];
-
+  const lastPerformed = new Map<string, string>();
   const counts = new Map<string, number>();
-  for (const row of data) {
-    counts.set(row.exercise_id, (counts.get(row.exercise_id) ?? 0) + 1);
+
+  for (const entry of entries) {
+    const workout = byId.get(entry.workout_id);
+    if (!workout) continue;
+
+    counts.set(entry.exercise_id, (counts.get(entry.exercise_id) ?? 0) + 1);
+
+    const known = lastPerformed.get(entry.exercise_id);
+    if (known === undefined || workout.date > known) {
+      lastPerformed.set(entry.exercise_id, workout.date);
+    }
   }
 
-  const ids = [...counts.entries()]
-    // Most logged first, then alphabetically by id so the order is stable
-    // rather than depending on what the database happened to return.
+  const recentIds = pickRecent(entries, rank);
+  const frequentIds = [...counts.entries()]
+    // Most logged first, then by id so the order is stable rather than
+    // depending on what the database happened to return.
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, FREQUENT_LIMIT)
     .map(([id]) => id);
 
-  return inOrder(ids, await fetchExercisesByIds(ids));
+  const library = await fetchExercisesByIds([
+    ...new Set([...recentIds, ...frequentIds]),
+  ]);
+
+  return {
+    recent: inOrder(recentIds, library),
+    frequent: inOrder(frequentIds, library),
+    lastPerformed,
+  };
 }
 
-/** fetchExercisesByIds returns a map, and the caller's order is the one that matters. */
+/** Distinct exercises from the most recent workouts, in the order performed. */
+function pickRecent(
+  entries: { workout_id: string; exercise_id: string; position: number }[],
+  rank: Map<string, number>,
+): string[] {
+  const sorted = entries
+    .filter(
+      (e) =>
+        rank.has(e.workout_id) && rank.get(e.workout_id)! < RECENT_WORKOUTS,
+    )
+    .sort((a, b) => {
+      const byWorkout = rank.get(a.workout_id)! - rank.get(b.workout_id)!;
+      return byWorkout !== 0 ? byWorkout : a.position - b.position;
+    });
+
+  const seen: string[] = [];
+  for (const entry of sorted) {
+    if (!seen.includes(entry.exercise_id)) seen.push(entry.exercise_id);
+    if (seen.length === RECENT_LIMIT) break;
+  }
+  return seen;
+}
+
+/** fetchExercisesByIds returns a map; the caller's order is the one that matters. */
 function inOrder(ids: string[], library: Map<string, Exercise>): Exercise[] {
   return ids
     .map((id) => library.get(id))

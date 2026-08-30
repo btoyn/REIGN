@@ -609,6 +609,50 @@ triceps at 57 are still long after the split. They are grouped under `Barbell`,
 owner can jump to the section rather than read every row. This is structure in
 the list, not another tap.
 
+## Variety
+
+The third thing REIGN does. Browse exists so a part that has been left alone
+becomes visible without having to remember, so both browse levels are ordered
+and labelled by how long it has been.
+
+**The exercise list is sorted by how long since each was last performed**, the
+longest ago at the top. Exercises that have never been done follow, in
+alphabetical order. That order is the whole decision: the other way round would
+bury three movements the owner actually rotates under four hundred that have
+never been touched, which is a catalogue rather than a suggestion.
+
+**Every row says how long ago as well as what it is** — `cable · 4 weeks ago`. A
+row for an exercise never done says only the equipment, because `Not done` on
+four hundred rows is noise. Recent and Frequent carry the same line, so the
+sentence under a name means the same thing everywhere in the picker.
+
+**How long ago is written in words, never as a date.** Days up to a fortnight,
+then weeks, then months. `63 days ago` is a number to decode; `2 months ago` is
+a fact. The question is how long it has been, not when it was.
+
+**The sub-muscle row reports age, not size.** `Lats · Yesterday`, not `Lats ·
+20`. The region row above it already gave the size of what was being entered;
+having chosen the region, the remaining question is which part has been left
+alone. A part never trained reads `Not done`.
+
+The sub-muscle rows themselves stay in a fixed order rather than re-sorting by
+age. There are at most four of them, all visible at once, so sorting buys
+nothing and costs a list that moves under the thumb between visits.
+
+### What counts as having been performed
+
+A workout counts once it is **finished**, and **today's counts while it is still
+being done**.
+
+Both halves matter. Without the first, a workout walked out of half way through
+would make an exercise look performed when it may never have been, which is
+exactly the lie this feature must not tell. Without the second, an exercise
+added ten minutes ago would be missing from Recent, and Recent is what gets
+reached for while standing in the gym.
+
+An abandoned workout and one in progress are indistinguishable until the day is
+over, so the date is what separates them.
+
 ## Photographs
 
 Every exercise has two: the start of the movement and the end. They alternate on
@@ -622,6 +666,19 @@ movements the trim already removes.
 No muscle diagrams. The muscle is already written down; what text cannot show is
 the movement.
 
+They are shown in monochrome. The source photographs are shot in a red-walled
+gym and the colour fights everything else in REIGN, which is the one place the
+interface would otherwise carry a hue nobody chose. Removing it also makes the
+loop easier to read, because the only thing changing between the two frames
+becomes the body rather than the body and a wall.
+
+Drawn illustrations were considered and rejected on supply rather than taste.
+The leading open set, Everkinetic, is 293 exercises against this library's 462,
+is CC BY-SA, and its artwork is gone: both of its image hosts no longer resolve.
+Half the library drawn and half photographed would look worse than either done
+consistently, and a photograph of the real setup answers questions a line
+drawing cannot, such as where the feet go.
+
 ### They are served through our own origin, not linked from GitHub
 
 `next/image` fetches them server side and serves them from REIGN's own origin.
@@ -629,8 +686,13 @@ The phone talks to one host on gym wifi rather than two, the images arrive sized
 for the screen instead of at 850 pixels wide, and Vercel caches them at the edge
 after the first request.
 
-Measured rather than assumed: 72,823 bytes for the original against 8,694 at the
-256-pixel width a phone actually needs. Eight and a half times smaller.
+Measured on a three-times density phone, which is what the owner has: the pair
+of photographs costs 80,434 bytes through our origin against 145,018 linked
+directly. About 45 percent less.
+
+An earlier note here claimed eight and a half times smaller. That was the 256
+pixel width, which a three-times screen never picks; it chooses 1200 for
+sharpness. The saving is real but smaller than first written.
 
 This was found by accident and is worth recording. A page linking the images
 directly failed on all twelve and took 29 seconds to do it. The cause was the
@@ -661,8 +723,28 @@ The owner can hide an exercise they will never do. Personal curation beats any
 filter guessed in advance, and it means the trim above does not have to be
 perfect.
 
-A hidden exercise disappears from browse and from search. Search carries a
-`Show hidden` escape, so nothing is ever permanently unreachable.
+A hidden exercise disappears from browse and from search.
+
+Hiding is a **mode**, not a control on every row. There are 462 rows and hiding
+is rare, so a control on each of them would be furniture on all to serve one.
+One line at the foot of the picker, `Hide exercises I never do`, turns the list
+from adding to hiding; `Done` turns it back. While the mode is on, the screen
+says so plainly, because a list where tapping removes rather than adds must
+never be mistaken for the ordinary one.
+
+**The mode is also the escape.** Hidden exercises reappear while it is on, so
+they can be brought back. That replaces the separate `Show hidden` control this
+section used to call for: one mechanism instead of two, and nothing is ever
+permanently unreachable.
+
+The switch sits at the foot of the picker rather than inside browse, so it is
+reachable while searching. An exercise that was hidden is most likely to be
+looked for by name, and it would otherwise have no way back.
+
+A hidden row is struck through **and** says `Hidden`. Neither depends on the
+other and neither is a colour.
+
+Nothing is deleted, ever.
 
 This is the one part of the picker that needs storage: one small table, added
 beside the seven rather than altering any of them.
@@ -752,6 +834,25 @@ Likely useful metrics:
 - distance when available
 
 Cardio and strength should appear as part of the same training day.
+
+## How it is entered
+
+By hand. There is no Apple Health on the web, so nothing arrives on its own,
+and what is recorded is what the machine's display says at the end.
+
+The type comes from presets rather than a text field, so the same machine is
+never called two things and the entry needs no keyboard. Only the time is
+required: a bike reports distance, a stair climber does not, and neither reports
+heart rate without a strap. **What a machine never reported is left out of the
+line entirely, never shown as a dash**, because a dash reads as a number that
+failed rather than a measure that was never taken.
+
+The same number pad as sets, for the same reason.
+
+On Today it sits beneath everything, and `Add cardio` is a quiet link. Today's
+one dominant action is starting or resuming a workout, and cardio must never
+compete with it. The `CARDIO` heading appears only once there is something under
+it.
 
 ---
 

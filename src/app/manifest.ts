@@ -17,5 +17,17 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "portrait",
     background_color: "#0A0A0A",
     theme_color: "#0A0A0A",
+    /*
+      The lion, from assets/brand/reign-lion-approved.png. iOS reads
+      apple-icon.png rather than this, but Android and the browser's install
+      prompt read the manifest, so it is stated here too.
+
+      There is no 512 pixel size. The supplied art is 240x230, so 512 would mean
+      upscaling it, and CLAUDE.md forbids that.
+    */
+    icons: [
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   };
 }

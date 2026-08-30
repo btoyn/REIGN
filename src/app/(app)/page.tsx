@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -8,6 +9,11 @@ import { RegionChoice } from "@/components/RegionChoice";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { Skeleton } from "@/components/Skeleton";
 import { primaryAction, quiet, secondaryAction } from "@/components/controls";
+import {
+  CardioSession,
+  describeCardio,
+  fetchCardioForDate,
+} from "@/lib/cardio";
 import {
   Split,
   WEEKDAYS,
@@ -52,6 +58,8 @@ type Data =
       /** The most recent workout dated today, if there is one. */
       workout: Workout | null;
       counts: WorkoutCounts;
+      /** Cardio recorded today. Part of the same training day as the lifting. */
+      cardio: CardioSession[];
     };
 
 /** A one-off deviation. Deliberately not stored — see the spec. */
@@ -77,12 +85,17 @@ export default function TodayPage() {
   useEffect(() => {
     let active = true;
 
-    Promise.all([fetchSplitForDay(dayOfWeek), fetchWorkoutForDate(date)])
-      .then(async ([split, workout]) => {
+    Promise.all([
+      fetchSplitForDay(dayOfWeek),
+      fetchWorkoutForDate(date),
+      fetchCardioForDate(date),
+    ])
+      .then(async ([split, workout, cardio]) => {
         const counts = workout
           ? await fetchWorkoutCounts(workout.id)
           : { exercises: 0, sets: 0 };
-        if (active) setData({ status: "loaded", split, workout, counts });
+        if (active)
+          setData({ status: "loaded", split, workout, counts, cardio });
       })
       .catch((e: Error) => {
         // Technical wording is no use to whoever is reading it, so it goes to
@@ -194,6 +207,32 @@ export default function TodayPage() {
             })
           : null}
       </div>
+
+      {/*
+        Cardio sits beneath everything, per the specification's hierarchy, and
+        is part of the same training day as the lifting rather than a separate
+        record. Adding it is a quiet link: Today's one dominant action is
+        starting or resuming a workout, and this must never compete with it.
+      */}
+      {data.status === "loaded" ? (
+        <div className="flex flex-col gap-3">
+          {data.cardio.length > 0 ? (
+            <>
+              <p className="text-label text-muted uppercase">Cardio</p>
+              <ul className="flex flex-col gap-2">
+                {data.cardio.map((session) => (
+                  <li key={session.id} className="text-body text-ink">
+                    {describeCardio(session)}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+          <Link href="/cardio" className={`${quiet} self-start`}>
+            Add cardio
+          </Link>
+        </div>
+      ) : null}
     </div>
   );
 }
