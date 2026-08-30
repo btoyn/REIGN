@@ -13,36 +13,25 @@ export type Exercise = {
   name: string;
   primary_muscle: string;
   equipment: string | null;
+  /** Needed by the browse trim; see src/lib/library.ts. */
+  category: string | null;
 };
 
+/** Every column the app reads about an exercise. */
+export const EXERCISE_COLUMNS = "id, name, primary_muscle, equipment, category";
+
 /**
- * The muscle groups actually present in the library, in alphabetical order.
+ * The whole library, in one read.
  *
- * Derived from the data rather than written down here, so the list cannot
- * drift from what the library holds. PostgREST has no DISTINCT, so this reads
- * one short column across the library and reduces it — around 876 small
- * strings, which is cheaper than it sounds and happens once per visit.
+ * Around 876 rows of five short columns, which is roughly 90KB and arrives in
+ * one request. Holding it makes search and browse instant and costs no further
+ * requests as the owner moves between them, which matters more than the first
+ * load does when the alternative is a round trip per tap in a gym.
  */
-export async function fetchMuscleGroups(): Promise<string[]> {
+export async function fetchLibrary(): Promise<Exercise[]> {
   const { data, error } = await getSupabase()
     .from("exercises")
-    .select("primary_muscle");
-
-  if (error) throw new Error(error.message);
-
-  const seen = new Set<string>();
-  for (const row of data ?? []) seen.add(row.primary_muscle);
-  return [...seen].sort();
-}
-
-/** Every exercise for one muscle group, by name. */
-export async function fetchExercisesByMuscle(
-  muscle: string,
-): Promise<Exercise[]> {
-  const { data, error } = await getSupabase()
-    .from("exercises")
-    .select("id, name, primary_muscle, equipment")
-    .eq("primary_muscle", muscle)
+    .select(EXERCISE_COLUMNS)
     .order("name");
 
   if (error) throw new Error(error.message);
@@ -62,7 +51,7 @@ export async function fetchExercisesByIds(
 
   const { data, error } = await getSupabase()
     .from("exercises")
-    .select("id, name, primary_muscle, equipment")
+    .select(EXERCISE_COLUMNS)
     .in("id", ids);
 
   if (error) throw new Error(error.message);
