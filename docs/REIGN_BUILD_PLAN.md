@@ -214,9 +214,8 @@ written down here so "after slice E" means something.
 | A2 | Back to Today for `Resume` and `Done today`, which need a workout to exist before they can be built | Built, with B |
 | C | The exercise picker rebuilt search-first, with Recent, Frequent and the six regions | Built |
 | C2 | The movement loop on the photographs, and hiding an exercise | Built |
-| D | Double progression suggestions | Next |
-| E | Rest timer with screen wake lock | |
-| F | PR detection and the last-time line | |
+| D | Double progression suggestions, last performance, and PR detection | Built |
+| E | Rest timer with screen wake lock | Next |
 
 Two additions, decided while building M2:
 

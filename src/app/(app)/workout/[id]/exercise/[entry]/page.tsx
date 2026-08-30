@@ -10,6 +10,15 @@ import { Skeleton } from "@/components/Skeleton";
 import { primaryAction, quiet, secondaryAction } from "@/components/controls";
 import { Exercise, fetchExercisesByIds } from "@/lib/exercises";
 import { Field, applyKey, displayValue, isLoggable } from "@/lib/entry";
+import { Session, allSets, fetchExerciseSessions } from "@/lib/exerciseHistory";
+import { isRecord, suggest } from "@/lib/progression";
+import {
+  RANGE_PRESETS,
+  Target,
+  fetchTarget,
+  rangeOf,
+  saveTarget,
+} from "@/lib/targets";
 import {
   LoggedSet,
   deleteSet,
@@ -36,7 +45,15 @@ type Data =
   | { status: "loading" }
   | { status: "error" }
   | { status: "missing" }
-  | { status: "ready"; exercise: Exercise | null; sets: LoggedSet[] };
+  | {
+      status: "ready";
+      exercise: Exercise | null;
+      sets: LoggedSet[];
+      /** Null until this exercise has been given a rep range. */
+      target: Target | null;
+      /** Past workouts containing this exercise, most recent first. */
+      sessions: Session[];
+    };
 
 export default function LogExercisePage({
   params,
@@ -58,6 +75,8 @@ export default function LogExercisePage({
    * points behind the tab bar. Asked for, they get the whole screen.
    */
   const [showingMovement, setShowingMovement] = useState(false);
+  /** Which rep range is chosen while answering the first-time question. */
+  const [pickedRange, setPickedRange] = useState(2);
   const [busy, setBusy] = useState(false);
   const [writeFailed, setWriteFailed] = useState(false);
 
@@ -71,20 +90,43 @@ export default function LogExercisePage({
           if (active) setData({ status: "missing" });
           return;
         }
-        const library = await fetchExercisesByIds([mine.exercise_id]);
+        const [library, target, sessions] = await Promise.all([
+          fetchExercisesByIds([mine.exercise_id]),
+          fetchTarget(mine.exercise_id),
+          fetchExerciseSessions(mine.exercise_id, id),
+        ]);
         if (!active) return;
 
         setData({
           status: "ready",
           exercise: library.get(mine.exercise_id) ?? null,
           sets,
+          target,
+          sessions,
         });
 
-        // Carry the last set forward, so repeating it is one tap.
+        // Within a workout, carry the last set forward so repeating it is one
+        // tap. Starting fresh, take what double progression suggests, and fall
+        // back to the recorded working weight when there is no history yet.
         const last = sets[sets.length - 1];
         if (last) {
           setWeight(last.weight === null ? "" : String(last.weight));
           setReps(last.reps === null ? "" : String(last.reps));
+          return;
+        }
+        if (!target) return;
+
+        const range = rangeOf(target);
+        const proposed = suggest(
+          sessions.map((session) => session.sets),
+          range,
+        );
+        if (proposed) {
+          setWeight(String(proposed.weight));
+          setReps(String(proposed.reps));
+        } else if (target.current_weight !== null) {
+          setWeight(String(target.current_weight));
+          setReps(String(range.min));
         }
       })
       .catch((e: Error) => {
@@ -117,6 +159,32 @@ export default function LogExercisePage({
     setWeight(last?.weight === null || !last ? "" : String(last.weight));
     setReps(last?.reps === null || !last ? "" : String(last.reps));
     setField("weight");
+  }
+
+  /**
+   * The first time an exercise is logged.
+   *
+   * Asked inline, on the screen where it is needed, because CLAUDE.md forbids a
+   * separate setup wizard. Two answers: the weight usually lifted, and the rep
+   * range being trained. After this the app suggests and never asks again.
+   */
+  async function answerFirstTime() {
+    if (data.status !== "ready" || !data.exercise) return;
+    if (weight === "") return;
+    setBusy(true);
+    setWriteFailed(false);
+    try {
+      const range = RANGE_PRESETS[pickedRange].range;
+      const target = await saveTarget(data.exercise.id, range, Number(weight));
+      setData({ ...data, target });
+      setReps(String(range.min));
+      setField("weight");
+    } catch (e) {
+      console.error("could not save the target", e);
+      setWriteFailed(true);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function commit() {
@@ -215,8 +283,23 @@ export default function LogExercisePage({
     );
   }
 
-  const { exercise, sets } = data;
+  const { exercise, sets, target, sessions } = data;
   const canLog = isLoggable(weight, reps);
+
+  // No rep range yet means this exercise has never been logged. Ask, once.
+  const asking = target === null;
+
+  const range = target ? rangeOf(target) : null;
+  const proposal =
+    range && sets.length === 0
+      ? suggest(
+          sessions.map((session) => session.sets),
+          range,
+        )
+      : null;
+
+  const earlier = allSets(sessions);
+  const lastTime = sessions[0];
 
   return (
     <div className="flex flex-col gap-5">
@@ -253,7 +336,19 @@ export default function LogExercisePage({
           exerciseName={exercise.name}
         />
       ) : sets.length === 0 ? (
-        <p className="text-body text-muted">No sets yet.</p>
+        /*
+          One line where the set list will go, so nothing is added to the
+          height. It says what happened last time and why the fields hold what
+          they hold, because a number that changed itself and did not say why is
+          worse than no number.
+        */
+        <p className="text-body text-muted">
+          {lastTime
+            ? `Last time · ${describeSession(lastTime.sets)}${proposal ? ` · ${proposal.because}` : ""}`
+            : asking
+              ? "First time. Nothing to go on yet."
+              : "No sets yet."}
+        </p>
       ) : (
         <ul className="max-h-36 overflow-y-auto">
           {sets.map((set, index) => {
@@ -282,6 +377,16 @@ export default function LogExercisePage({
                   >
                     {set.weight} lb × {set.reps}
                   </span>
+                  {/*
+                    A record is marked by the letters PR. The gold is on top of
+                    the word, never instead of it. Records are worked out every
+                    time from what came before, and never stored.
+                  */}
+                  {!editing && isRecord(set, earlier) ? (
+                    <span className="text-label text-accent ml-auto font-bold uppercase">
+                      PR
+                    </span>
+                  ) : null}
                   {editing ? (
                     <span className="text-label text-accent ml-auto uppercase">
                       Editing
@@ -294,7 +399,59 @@ export default function LogExercisePage({
         </ul>
       )}
 
-      {showingMovement ? null : (
+      {/*
+        The first time an exercise is logged there is nothing to suggest from,
+        so the app asks rather than guesses: the weight usually lifted, and the
+        range being trained. Inline, on this screen, never a setup wizard.
+      */}
+      {asking && !showingMovement ? (
+        <>
+          <div className="flex gap-3">
+            <ValueField
+              label="Usual weight"
+              suffix="lb"
+              value={weight}
+              active
+              onSelect={() => setField("weight")}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <p className="text-label text-muted uppercase">Rep range</p>
+            <div className="grid grid-cols-4 gap-2">
+              {RANGE_PRESETS.map((preset, index) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  aria-pressed={index === pickedRange}
+                  onClick={() => setPickedRange(index)}
+                  // Chosen carries weight as well as gold.
+                  className={`text-lead h-12 rounded-sm border ${
+                    index === pickedRange
+                      ? "border-accent text-accent font-bold"
+                      : "border-border text-muted"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <NumberPad onKey={press} decimalDisabled={false} />
+
+          <button
+            type="button"
+            disabled={weight === "" || busy}
+            onClick={answerFirstTime}
+            className={primaryAction}
+          >
+            {busy ? "Saving" : "Start logging"}
+          </button>
+        </>
+      ) : null}
+
+      {showingMovement || asking ? null : (
         <>
           <div className="flex gap-3">
             <ValueField
@@ -405,4 +562,19 @@ function ValueField({
       </span>
     </button>
   );
+}
+
+/** "135 lb × 8, 8, 7". Assembled here; the database holds numbers. */
+function describeSession(sets: LoggedSet[]): string {
+  const working = sets.filter((s) => !s.is_warmup && s.weight !== null);
+  if (working.length === 0) return "nothing recorded";
+
+  const weights = [...new Set(working.map((s) => s.weight))];
+  const reps = working.map((s) => s.reps).join(", ");
+
+  // One weight is the normal case and reads as one number. Several means the
+  // weight moved during the session, so each set is spelled out.
+  return weights.length === 1
+    ? `${weights[0]} lb × ${reps}`
+    : working.map((s) => `${s.weight}×${s.reps}`).join(", ");
 }
