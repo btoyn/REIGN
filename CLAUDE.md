@@ -124,6 +124,16 @@ Commit after every working feature.
 Verify UI changes in a real browser with Playwright before calling them done.
 Ask when a product decision is genuinely unspecified.
 
+Open the pull request yourself at the end of every slice and put the link in the
+message. Pushing a branch and leaving the pull request to be found is not
+finishing. If one is already open for the branch, keep its title and description
+current and give the link again anyway.
+
+Say plainly how to see the change. Every slice ends with three facts: whether it
+is merged, whether production is behind the branch, and which link to open. The
+owner assumed a caching problem once when the merge simply had not happened, and
+that was avoidable.
+
 CURRENT MILESTONE
 M2.
 
