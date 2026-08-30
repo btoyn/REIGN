@@ -5,17 +5,12 @@ import { useEffect, useState } from "react";
 
 import { BrandHeader } from "@/components/BrandHeader";
 import { ScreenTitle } from "@/components/ScreenTitle";
+import { RegionChoice } from "@/components/RegionChoice";
 import { Skeleton } from "@/components/Skeleton";
+import { primaryAction, secondaryAction } from "@/components/controls";
 import {
-  choice,
-  primaryAction,
-  quiet,
-  secondaryAction,
-} from "@/components/controls";
-import { REGIONS } from "@/lib/regions";
-import {
-  REST_DAY_NAME,
   Split,
+  WEEKDAYS,
   fetchSplitForDay,
   isRestDay,
   saveSplitForDay,
@@ -45,16 +40,6 @@ type State =
   /** This weekday has never been answered. */
   | { status: "asking"; saving: string | null }
   | { status: "known"; split: Split };
-
-const WEEKDAYS = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
 
 export default function TodayPage() {
   const [state, setState] = useState<State>({ status: "loading" });
@@ -177,8 +162,6 @@ function AskBlock({
   saving: string | null;
   onAnswer: (name: string, muscles: string[]) => void;
 }) {
-  const busy = saving !== null;
-
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
@@ -190,37 +173,7 @@ function AskBlock({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        {REGIONS.map((region) => (
-          <button
-            key={region.name}
-            type="button"
-            disabled={busy}
-            onClick={() => onAnswer(region.name, region.muscles)}
-            className={
-              saving === region.name
-                ? `${choice} border-accent text-accent`
-                : choice
-            }
-          >
-            {saving === region.name ? "Saving" : region.name}
-          </button>
-        ))}
-      </div>
-
-      {/*
-        A rest day is a recorded answer, not a missing one: a split with a name
-        and no muscles. Quieter than the six, because it is the less common
-        answer, but it is a real choice and not a way out of the question.
-      */}
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => onAnswer(REST_DAY_NAME, [])}
-        className={`${choice} text-body text-muted`}
-      >
-        {saving === REST_DAY_NAME ? "Saving" : REST_DAY_NAME}
-      </button>
+      <RegionChoice saving={saving} onChoose={onAnswer} />
     </div>
   );
 }
@@ -249,22 +202,24 @@ function KnownBlock({ split, weekday }: { split: Split; weekday: string }) {
         )}
       </div>
 
+      {/*
+        `Change today` belongs here on both states, and is not built yet. It
+        reopens the six regions, and the override it produces is recorded as the
+        workout's own split name, so it has nowhere to live until a workout can
+        be created. Shipping it now would mean a control that changes a heading
+        and forgets on the next reload.
+
+        So a rest day has no action for one slice. The withdrawn `Something
+        else` link went to the exercise library, which records nothing, and
+        relabelling a browse link `Change today` would claim something untrue.
+
+        Changing the day permanently already works, in Program.
+      */}
       {resting ? (
-        <div className="flex flex-col gap-5">
-          <p className="text-body text-muted">
-            Nothing scheduled for {weekday}s. Training anyway is one tap away.
-          </p>
-          <Link href="/exercises" className={quiet}>
-            Something else
-          </Link>
-        </div>
+        <p className="text-body text-muted">
+          Nothing scheduled for {weekday}s.
+        </p>
       ) : (
-        /*
-          One primary action, no pair. `Something else` belongs beside this
-          button in the spec, but until workouts exist it would go to the same
-          screen START WORKOUT goes to, and two controls that do the identical
-          thing are worse than one. It returns when the two differ.
-        */
         <Link href="/exercises" className={primaryAction}>
           Start Workout
         </Link>
