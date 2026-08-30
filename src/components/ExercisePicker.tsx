@@ -73,6 +73,7 @@ export function ExercisePicker({
    */
   const [curating, setCurating] = useState(false);
   const [pendingHide, setPendingHide] = useState<string | null>(null);
+  const [hideFailed, setHideFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -118,6 +119,7 @@ export function ExercisePicker({
   async function toggleHidden(exercise: Exercise) {
     if (data.status !== "ready") return;
     setPendingHide(exercise.id);
+    setHideFailed(false);
     const wasHidden = data.hidden.has(exercise.id);
     try {
       if (wasHidden) await unhideExercise(exercise.id);
@@ -128,7 +130,11 @@ export function ExercisePicker({
       else next.add(exercise.id);
       setData({ ...data, hidden: next });
     } catch (e) {
+      // A tap that does nothing and says nothing is the worst outcome. This is
+      // most likely the migration not having been run yet, so the message says
+      // so rather than blaming the connection.
       console.error("could not change what is hidden", e);
+      setHideFailed(true);
     } finally {
       setPendingHide(null);
     }
@@ -209,9 +215,18 @@ export function ExercisePicker({
             Tap any exercise to hide it, or to bring back one you hid. Hidden
             exercises stay out of browse and search. Nothing is deleted.
           </p>
+          {hideFailed ? (
+            <p role="alert" className="text-body text-ink">
+              Could not change that. Hiding needs a database update that has not
+              been applied yet.
+            </p>
+          ) : null}
           <button
             type="button"
-            onClick={() => setCurating(false)}
+            onClick={() => {
+              setHideFailed(false);
+              setCurating(false);
+            }}
             className={`${quiet} self-start`}
           >
             Done
