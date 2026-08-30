@@ -48,3 +48,23 @@ export async function fetchExercisesByMuscle(
   if (error) throw new Error(error.message);
   return data ?? [];
 }
+
+/**
+ * Several exercises by id, for showing what is in a workout.
+ *
+ * Returned keyed by id rather than as a list, because the caller already knows
+ * the order it wants: the order they were added to the workout.
+ */
+export async function fetchExercisesByIds(
+  ids: string[],
+): Promise<Map<string, Exercise>> {
+  if (ids.length === 0) return new Map();
+
+  const { data, error } = await getSupabase()
+    .from("exercises")
+    .select("id, name, primary_muscle, equipment")
+    .in("id", ids);
+
+  if (error) throw new Error(error.message);
+  return new Map((data ?? []).map((e) => [e.id, e]));
+}
