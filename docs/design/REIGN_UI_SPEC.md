@@ -540,6 +540,111 @@ Neck, abductors and adductors are nested and never top level.
 
 This covers all seventeen muscles the exercise library tags.
 
+## What appears in browse
+
+The library is 876 exercises, most of which the owner will never do. Browse is
+trimmed to what a commercial gym holds:
+
+- category `strength` or `powerlifting`
+- equipment is not `kettlebells`, `bands`, `medicine ball`, `exercise ball`,
+  `foam roll`, `other`, or empty
+- the name does not contain `chain` or `band`, which removes the seventeen
+  bar-and-chain variations that need equipment a commercial gym does not have
+
+That leaves **462**. Chest goes from 84 to 55, Legs from 298 to 93.
+
+Nothing is deleted from the database and nothing becomes unreachable. The trim
+applies to **browse only**. Search reaches the whole library, so a stretch or a
+strongman lift is still one query away.
+
+## Recent and Frequent
+
+These carry most of the traffic once there is any history, and they matter more
+than the hierarchy below them. Both sit above browse and above the fold.
+
+**Recent** — the last ten distinct exercises, most recently used first.
+**Frequent** — the most logged, by how many workouts contain them.
+
+Both are read from the owner's own workouts, not from the library, so neither is
+filtered by the trim: an exercise that has been done belongs in these lists
+whatever its category.
+
+Both are absent until there is history. An empty list is worse than no list.
+
+## Search
+
+Search reaches everything and is the primary entry point, because most of the
+time the owner knows the name.
+
+**It has to work on the names the owner uses, not the library's.** Three rules,
+in this order:
+
+1. **Normalise both sides** — fold case, strip punctuation and hyphens, collapse
+   whitespace. This alone makes `skullcrusher` find `Skull Crusher` and
+   `bench press` find `Bench Press - Powerlifting`.
+2. **Aliases**, hand written and editable, for the terms the library simply does
+   not use. `overhead press` and `RDL` both return nothing without them.
+3. **Ranking, kept simple** — exact name, then name begins with the query, then
+   shortest name. Deliberately not clever: a query like `curl` matches 66
+   exercises and no ranking makes 66 into an answer. Recent solves that once
+   three curl variations have been logged.
+
+## The second level, per region
+
+It differs by region, because the regions differ. Each is chosen from what makes
+that region scannable, not from one rule applied six times.
+
+| Region | Count | Second level | Why |
+|---|---|---|---|
+| Chest | 55 | Equipment | One muscle, so sub-muscle does not exist. Five even buckets. |
+| Back | 55 | Sub-muscle | lats 20, middle back 19, traps 10, lower back 6. This is the variety the owner asked for, and it separates a lat day from a trap day. |
+| Shoulders | 74 | Equipment | Sub-muscle is useless here: shoulders 72, neck 2. |
+| Arms | 122 | Sub-muscle | triceps 57, biceps 48, forearms 17. By equipment the largest bucket would be 49 and mixed. |
+| Legs | 93 | Sub-muscle | quadriceps 50, hamstrings 18, calves 12, glutes 11. By equipment, barbell alone is 39. |
+| Core | 63 | None | By equipment it is body only 38 and four scraps; by muscle it is one bucket of 63. A second level would be a pile and some crumbs, so the list is flat. |
+
+**Long buckets carry equipment headings inside them.** Quadriceps at 50 and
+triceps at 57 are still long after the split. They are grouped under `Barbell`,
+`Dumbbell`, `Cable`, `Machine`, `Bodyweight` headings within the one list, so the
+owner can jump to the section rather than read every row. This is structure in
+the list, not another tap.
+
+## Photographs
+
+Every exercise has two: the start of the movement and the end. They alternate on
+a slow loop, so what a movement actually is can be seen rather than read.
+
+The paths are derived from the exercise id — `<id>/0.jpg` and `<id>/1.jpg` — so
+this needs no column, no migration and no stored data. All 462 in the trimmed
+set have both. The three in the whole library without them are kettlebell
+movements the trim already removes.
+
+No muscle diagrams. The muscle is already written down; what text cannot show is
+the movement.
+
+### When an image does not load
+
+It will, on gym wifi. Three rules:
+
+1. **The frame reserves its aspect ratio from the first paint.** Nothing moves
+   when the photographs arrive, and nothing moves when they fail.
+2. **A failure is a sentence, never a broken image icon.** The reserved frame
+   holds a quiet line saying the photographs could not be loaded.
+3. **The frame is tappable to try again.** No new control: the box is already
+   there, and a second attempt is what anyone would want.
+
+## Hidden exercises
+
+The owner can hide an exercise they will never do. Personal curation beats any
+filter guessed in advance, and it means the trim above does not have to be
+perfect.
+
+A hidden exercise disappears from browse and from search. Search carries a
+`Show hidden` escape, so nothing is ever permanently unreachable.
+
+This is the one part of the picker that needs storage: one small table, added
+beside the seven rather than altering any of them.
+
 ---
 
 # Active Workout Direction
