@@ -791,6 +791,25 @@ Likely useful metrics:
 
 Cardio and strength should appear as part of the same training day.
 
+## How it is entered
+
+By hand. There is no Apple Health on the web, so nothing arrives on its own,
+and what is recorded is what the machine's display says at the end.
+
+The type comes from presets rather than a text field, so the same machine is
+never called two things and the entry needs no keyboard. Only the time is
+required: a bike reports distance, a stair climber does not, and neither reports
+heart rate without a strap. **What a machine never reported is left out of the
+line entirely, never shown as a dash**, because a dash reads as a number that
+failed rather than a measure that was never taken.
+
+The same number pad as sets, for the same reason.
+
+On Today it sits beneath everything, and `Add cardio` is a quiet link. Today's
+one dominant action is starting or resuming a workout, and cardio must never
+compete with it. The `CARDIO` heading appears only once there is something under
+it.
+
 ---
 
 # Reference Images

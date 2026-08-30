@@ -216,7 +216,8 @@ written down here so "after slice E" means something.
 | C2 | The movement loop on the photographs, and hiding an exercise | Built |
 | D | Double progression suggestions, last performance, and PR detection | Built |
 | E | Rest timer with screen wake lock | Built |
-| — | Manual cardio entry, the other half of M4 | Next |
+| — | Manual cardio entry, the other half of M4 | Built |
+| — | M5 variety: browse by sub-muscle, sorted by time since last performed | Next |
 
 Two additions, decided while building M2:
 

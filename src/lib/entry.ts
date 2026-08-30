@@ -10,11 +10,32 @@
  * more than anyone will do.
  */
 
-export type Field = "weight" | "reps";
+export type Field =
+  | "weight"
+  | "reps"
+  | "minutes"
+  | "heartRate"
+  | "calories"
+  | "distance";
 
+/*
+  Every limit comes from the column the value lands in, not from a guess.
+
+  weight    numeric(6, 2)  four whole digits and two decimals
+  reps      integer        three digits is already more than anyone will do
+  minutes   integer        999 minutes is over sixteen hours
+  heartRate integer        three digits covers every human heart
+  calories  integer        four digits covers any single session
+  distance  numeric(8, 2)  three whole digits and two decimals is plenty for
+                           miles or kilometres in one session
+*/
 const LIMITS = {
   weight: { allowDecimal: true, maxWhole: 4, maxDecimals: 2 },
   reps: { allowDecimal: false, maxWhole: 3, maxDecimals: 0 },
+  minutes: { allowDecimal: false, maxWhole: 3, maxDecimals: 0 },
+  heartRate: { allowDecimal: false, maxWhole: 3, maxDecimals: 0 },
+  calories: { allowDecimal: false, maxWhole: 4, maxDecimals: 0 },
+  distance: { allowDecimal: true, maxWhole: 3, maxDecimals: 2 },
 } as const;
 
 export function applyKey(current: string, key: string, field: Field): string {
