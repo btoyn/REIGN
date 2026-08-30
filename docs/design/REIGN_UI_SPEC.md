@@ -622,6 +622,19 @@ movements the trim already removes.
 No muscle diagrams. The muscle is already written down; what text cannot show is
 the movement.
 
+They are shown in monochrome. The source photographs are shot in a red-walled
+gym and the colour fights everything else in REIGN, which is the one place the
+interface would otherwise carry a hue nobody chose. Removing it also makes the
+loop easier to read, because the only thing changing between the two frames
+becomes the body rather than the body and a wall.
+
+Drawn illustrations were considered and rejected on supply rather than taste.
+The leading open set, Everkinetic, is 293 exercises against this library's 462,
+is CC BY-SA, and its artwork is gone: both of its image hosts no longer resolve.
+Half the library drawn and half photographed would look worse than either done
+consistently, and a photograph of the real setup answers questions a line
+drawing cannot, such as where the feet go.
+
 ### They are served through our own origin, not linked from GitHub
 
 `next/image` fetches them server side and serves them from REIGN's own origin.

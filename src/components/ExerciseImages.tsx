@@ -79,7 +79,17 @@ export function ExerciseImages({
     if (loaded.current >= 2) setStatus("ready");
   }
 
-  const common = "absolute inset-0 h-full w-full object-cover transition-none";
+  /*
+    Monochrome.
+
+    The photographs are shot in a red-walled gym and the colour fought
+    everything else in REIGN. Removing it also makes the loop easier to read:
+    the only thing changing between the two frames becomes the body, rather than
+    the body and a wall. A little contrast keeps the figure off the background
+    once the colour is gone.
+  */
+  const common =
+    "absolute inset-0 h-full w-full object-cover grayscale contrast-[1.08] transition-none";
 
   return (
     <div
