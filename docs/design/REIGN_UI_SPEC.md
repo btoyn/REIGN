@@ -66,44 +66,46 @@ Do not introduce additional brand colors without approval.
 
 ## Typography
 
-Use the native iOS system font for V1.
+The typeface is **Archivo**.
 
-Do not add a custom font yet.
+The earlier rule here called for the native system font. That rule is what made
+REIGN look like any other app, and it is withdrawn.
 
-General hierarchy:
+Two widths are in use, from the same family, so the interface stays one voice:
 
-### Display
-Used sparingly for major metrics.
+- **Archivo Condensed** for headings and large numbers. Condensed carries weight
+  at large sizes without eating the width of a phone, which matters because the
+  things that need to be big here are words like DEADLIFT and numbers like 315.
+- **Archivo regular width** for body text, labels and anything read as a
+  sentence.
 
-- large
-- bold or semibold
-- high contrast
+### Numbers
 
-### Screen Title
-Examples:
-- TODAY
-- PROGRAM
-- PROGRESS
+Tabular figures are on across the whole interface.
 
-Use strong hierarchy but avoid oversized decorative headings.
+This is not a preference. A training log is columns of weights and reps, and
+proportional digits make a column of 45, 135 and 315 ragged and slow to scan.
+Every digit occupies the same width so columns line up.
 
-### Primary Content
-Examples:
-- PUSH A
-- Incline Barbell Bench
-- Bigger Leaner Stronger
+Verified rather than assumed: Archivo's digits are proportional by default and
+its tabular feature maps every digit to one width, in both the condensed and
+regular widths, at 400 and 700 weight.
 
-### Secondary Content
-Examples:
-- Week 6 · Day 4
-- Yesterday · 49 min
-- 5 exercises · ~52 min
+### Hierarchy
 
-Secondary text should visually recede.
+**Display** — condensed, large, bold. Major metrics and the split name on Today.
+Used sparingly; if everything is display, nothing is.
 
-Uppercase is acceptable for small section labels and primary CTAs.
+**Screen title** — small, uppercase, letterspaced, muted. An eyebrow that names
+the screen without competing with its content.
 
-Do not uppercase all interface text.
+**Primary content** — the thing the screen is about. DEADLIFT. Bigger Leaner
+Stronger. Condensed at the largest sizes, regular below.
+
+**Secondary content** — Monday · Back. Yesterday · 49 min. Recedes.
+
+Uppercase is for small section labels and primary buttons. Do not uppercase all
+interface text.
 
 ---
 
@@ -182,7 +184,7 @@ Use icons only when they improve comprehension.
 
 Do not decorate the interface with unnecessary icons.
 
-Use simple system-style icons when needed. Prefer inline SVG over an icon font.
+Use simple system-style icons when needed. Lucide is the icon set.
 
 Do not use emoji as interface icons.
 
@@ -245,43 +247,87 @@ It should not attempt to summarize the entire app.
 
 ---
 
+## The governing principle
+
+The owner trains the same thing every Monday. He should not have to make a
+decision to start training. The app already knows, and improvising is one tap
+away but never in the way.
+
+**Two equal buttons on Today would be a decision tax on every workout.** There
+is one primary action and one quiet escape, never a pair.
+
+---
+
 ## Information Hierarchy
 
-Top area:
+Top area, on every state:
 
-- small REIGN wordmark or restrained REIGN brand treatment
+- the REIGN wordmark
 - current date
 
-Then:
+Then a single block whose content depends on the state below, then the primary
+action, then a quiet text link, `Something else`, which opens the exercise
+picker to improvise.
 
-### TODAY
+`LAST WORKOUT` sits beneath all of it once there is history. `CARDIO` arrives
+with manual entry.
 
-Primary workout block:
+---
 
-- `PUSH A`
-- `Bigger Leaner Stronger`
-- `Monday · Back`
-- `5 exercises · ~52 min`
+## Today's states
 
-Primary CTA:
+Today is one of five things. It is never a generic screen with a button on it.
 
-`START WORKOUT`
+### Split unknown
 
-Then secondary information:
+The first time a given weekday is seen. Today asks, once:
 
-### LAST WORKOUT
+`What are you training today?`
 
-- `Pull A`
-- `Yesterday · 49 min`
+Six body regions, plus `Rest day`. Choosing one records that weekday's split and
+proceeds. **The split assembles itself over the first week of training, one
+question per new weekday.** There is no setup wizard, and the app never asks
+about a day the owner has not reached yet.
 
-Then:
+### Ready
 
-### CARDIO
+- `BACK` — the split name, display size
+- the program or split name beneath it
+- `START WORKOUT`
+- `Something else`
 
-- `Apple Health`
-- `No cardio recorded today`
+### In progress
 
-Cardio will later reflect imported Apple Watch / Apple Health workouts.
+A workout exists with no finish time. The app must never offer to start a second
+one.
+
+- `BACK`
+- `In progress · 2 exercises · 5 sets`
+- `RESUME WORKOUT`
+- `Discard workout`, quiet, and **behind a confirmation step**. One mis-tap
+  mid-session must not destroy a workout.
+
+### Done today
+
+- `BACK`
+- `Finished · 52 min · 18 sets`
+- No primary button. `Something else` becomes the only action.
+
+### Rest day
+
+- `Rest day`
+- No primary button. `Something else` only.
+
+---
+
+## Where "what's next" comes from
+
+From the weekday split. Programs are a later milestone and Today does not read
+from them yet, because the data model has no concept of an activated program and
+locking that model matters more than the feature does.
+
+When programs arrive, they take precedence over the split, and this section is
+revised then rather than anticipated now.
 
 ---
 
@@ -305,6 +351,42 @@ Do not add:
 - AI recommendations
 
 The Today screen should remain sparse.
+
+---
+
+# Exercise Picker
+
+The picker is reached from `Add exercise` during a workout, from
+`Something else` on Today, and when choosing what to train on a new weekday.
+
+## Order on the screen
+
+1. **Search** — the primary entry point, at the top. Most of the time the owner
+   knows the exercise's name and typing three letters is faster than any
+   hierarchy.
+2. **Recent** — the last exercises logged, most recent first.
+3. **Frequent** — the most logged.
+4. **Browse** — six body regions, muscles nested underneath.
+
+Recent and Frequent are absent on day one because they would be empty and an
+empty list is worse than no list. They appear as history accumulates, and once
+they exist they carry most of the traffic.
+
+## Six regions
+
+Muscles nest under regions. Lats and traps sit **under** Back, not beside it.
+Neck, abductors and adductors are nested and never top level.
+
+| Region | Muscles |
+|---|---|
+| Chest | chest |
+| Back | lats, middle back, lower back, traps |
+| Shoulders | shoulders, neck |
+| Arms | biceps, triceps, forearms |
+| Legs | quadriceps, hamstrings, glutes, calves, abductors, adductors |
+| Core | abdominals |
+
+This covers all seventeen muscles the exercise library tags.
 
 ---
 
