@@ -8,6 +8,7 @@ import { ScreenTitle } from "@/components/ScreenTitle";
 import { Skeleton } from "@/components/Skeleton";
 import { primaryAction, quiet, secondaryAction } from "@/components/controls";
 import { Exercise, fetchExercisesByIds } from "@/lib/exercises";
+import { LoggedSet, fetchSetsForEntries } from "@/lib/sets";
 import {
   Workout,
   WorkoutExercise,
@@ -38,6 +39,7 @@ type Data =
       workout: Workout;
       exercises: WorkoutExercise[];
       library: Map<string, Exercise>;
+      setsByEntry: Map<string, LoggedSet[]>;
     };
 
 export default function WorkoutPage({ params }: PageProps<"/workout/[id]">) {
@@ -57,10 +59,18 @@ export default function WorkoutPage({ params }: PageProps<"/workout/[id]">) {
           return;
         }
         const exercises = await fetchWorkoutExercises(workout.id);
-        const library = await fetchExercisesByIds(
-          exercises.map((e) => e.exercise_id),
-        );
-        if (active) setData({ status: "ready", workout, exercises, library });
+        const [library, setsByEntry] = await Promise.all([
+          fetchExercisesByIds(exercises.map((e) => e.exercise_id)),
+          fetchSetsForEntries(exercises.map((e) => e.id)),
+        ]);
+        if (active)
+          setData({
+            status: "ready",
+            workout,
+            exercises,
+            library,
+            setsByEntry,
+          });
       })
       .catch((e: Error) => {
         console.error("workout failed to load", e);
@@ -146,7 +156,7 @@ export default function WorkoutPage({ params }: PageProps<"/workout/[id]">) {
     );
   }
 
-  const { workout, exercises, library } = data;
+  const { workout, exercises, library, setsByEntry } = data;
   const finished = !isInProgress(workout);
 
   return (
@@ -161,12 +171,6 @@ export default function WorkoutPage({ params }: PageProps<"/workout/[id]">) {
             {finished ? "Finished" : "In progress"}
           </p>
         </div>
-        {/*
-          Said once, at the top, where it explains the screen. Logging weight
-          and reps with the custom number pad is the next slice; controls that
-          did nothing would be worse than this sentence.
-        */}
-        <p className="text-body text-muted">Sets are not recorded yet.</p>
       </div>
 
       {exercises.length === 0 ? (
@@ -177,24 +181,32 @@ export default function WorkoutPage({ params }: PageProps<"/workout/[id]">) {
         <ul>
           {exercises.map((entry, index) => {
             const exercise = library.get(entry.exercise_id);
+            const sets = setsByEntry.get(entry.id) ?? [];
             return (
               <li
                 key={entry.id}
-                className="border-border flex items-baseline gap-4 border-b py-4 last:border-b-0"
+                className="border-border border-b last:border-b-0"
               >
-                {/*
-                  The position, so the order of the workout is legible at a
-                  glance. Tabular figures keep the column straight.
-                */}
-                <span className="text-body text-muted w-5 shrink-0">
-                  {index + 1}
-                </span>
-                <span className="flex flex-col gap-1">
-                  <span className="text-lead text-ink">
-                    {exercise?.name ?? "Unknown exercise"}
+                <Link
+                  href={`/workout/${workout.id}/exercise/${entry.id}`}
+                  className="flex items-baseline gap-4 py-4"
+                >
+                  {/*
+                    The position, so the order of the workout is legible at a
+                    glance. Tabular figures keep the column straight.
+                  */}
+                  <span className="text-body text-muted w-5 shrink-0">
+                    {index + 1}
                   </span>
-                  <span className="text-body text-muted">No sets yet</span>
-                </span>
+                  <span className="flex flex-col gap-1">
+                    <span className="text-lead text-ink">
+                      {exercise?.name ?? "Unknown exercise"}
+                    </span>
+                    <span className="text-body text-muted">
+                      {describeSets(sets)}
+                    </span>
+                  </span>
+                </Link>
               </li>
             );
           })}
@@ -218,4 +230,20 @@ export default function WorkoutPage({ params }: PageProps<"/workout/[id]">) {
       )}
     </div>
   );
+}
+
+/**
+ * What has been logged for one exercise, in one line.
+ *
+ * Every set when they differ, and "3 × 135 lb × 8" when they do not, because a
+ * straight-set exercise repeating itself three times is noise rather than
+ * information. Assembled here; the database holds numbers.
+ */
+function describeSets(sets: LoggedSet[]): string {
+  if (sets.length === 0) return "No sets yet";
+
+  const written = sets.map((s) => `${s.weight} lb × ${s.reps}`);
+  const allSame = written.every((w) => w === written[0]);
+  if (allSame && sets.length > 1) return `${sets.length} × ${written[0]}`;
+  return written.join("   ");
 }

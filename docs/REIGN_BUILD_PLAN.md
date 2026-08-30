@@ -210,9 +210,9 @@ written down here so "after slice E" means something.
 | A | Today's state machine: the split learns itself, and the Ready state | Built |
 | — | Program's weekday schedule, so a split can be corrected without touching the database | Built |
 | B | Real workouts: start, in progress, resume, finish. `Discard workout` behind a confirmation step. `Change today` | Built |
-| B2 | Set logging: weight and reps, with the custom number pad rather than the iOS keyboard | Next |
+| B2 | Set logging: weight and reps, with the custom number pad rather than the iOS keyboard | Built |
 | A2 | Back to Today for `Resume` and `Done today`, which need a workout to exist before they can be built | Built, with B |
-| C | The exercise picker rebuilt search-first, with Recent, Frequent and the six regions | |
+| C | The exercise picker rebuilt search-first, with Recent, Frequent and the six regions | Next |
 | D | Double progression suggestions | |
 | E | Rest timer with screen wake lock | |
 | F | PR detection and the last-time line | |
