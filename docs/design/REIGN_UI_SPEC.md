@@ -622,9 +622,26 @@ movements the trim already removes.
 No muscle diagrams. The muscle is already written down; what text cannot show is
 the movement.
 
+### They are served through our own origin, not linked from GitHub
+
+`next/image` fetches them server side and serves them from REIGN's own origin.
+The phone talks to one host on gym wifi rather than two, the images arrive sized
+for the screen instead of at 850 pixels wide, and Vercel caches them at the edge
+after the first request.
+
+Measured rather than assumed: 72,823 bytes for the original against 8,694 at the
+256-pixel width a phone actually needs. Eight and a half times smaller.
+
+This was found by accident and is worth recording. A page linking the images
+directly failed on all twelve and took 29 seconds to do it. The cause was the
+build sandbox's own proxy rather than GitHub, which serves them in 133ms, but
+the shape of that failure is exactly what a weak connection produces: not a
+clean error, a long hang and then nothing. The same page through `next/image`
+loaded all twelve and settled in 3.8 seconds.
+
 ### When an image does not load
 
-It will, on gym wifi. Three rules:
+It will, on gym wifi. Four rules:
 
 1. **The frame reserves its aspect ratio from the first paint.** Nothing moves
    when the photographs arrive, and nothing moves when they fail.
@@ -632,6 +649,11 @@ It will, on gym wifi. Three rules:
    holds a quiet line saying the photographs could not be loaded.
 3. **The frame is tappable to try again.** No new control: the box is already
    there, and a second attempt is what anyone would want.
+4. **There is a deadline.** An `img` element has no timeout and will hang for as
+   long as the network lets it, which was measured at 29 seconds. If the
+   photographs have not arrived within a few seconds, the frame shows the
+   failure rather than continuing to wait. A picture that arrives after the set
+   is finished is worth nothing.
 
 ## Hidden exercises
 
