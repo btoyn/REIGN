@@ -215,7 +215,8 @@ written down here so "after slice E" means something.
 | C | The exercise picker rebuilt search-first, with Recent, Frequent and the six regions | Built |
 | C2 | The movement loop on the photographs, and hiding an exercise | Built |
 | D | Double progression suggestions, last performance, and PR detection | Built |
-| E | Rest timer with screen wake lock | Next |
+| E | Rest timer with screen wake lock | Built |
+| — | Manual cardio entry, the other half of M4 | Next |
 
 Two additions, decided while building M2:
 

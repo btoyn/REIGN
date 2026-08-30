@@ -5,6 +5,7 @@ import { use, useEffect, useState } from "react";
 
 import { ExerciseImages } from "@/components/ExerciseImages";
 import { NumberPad, PadKey } from "@/components/NumberPad";
+import { RestTimer } from "@/components/RestTimer";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { Skeleton } from "@/components/Skeleton";
 import { primaryAction, quiet, secondaryAction } from "@/components/controls";
@@ -77,6 +78,14 @@ export default function LogExercisePage({
   const [showingMovement, setShowingMovement] = useState(false);
   /** Which rep range is chosen while answering the first-time question. */
   const [pickedRange, setPickedRange] = useState(2);
+  /**
+   * When the last set was logged, in this screen's own time.
+   *
+   * Not read from completed_at: that is the database's clock, and a rest timer
+   * that disagrees with the phone by a few seconds looks broken. It starts at
+   * null so no timer runs before the first set of the visit.
+   */
+  const [lastLoggedAt, setLastLoggedAt] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [writeFailed, setWriteFailed] = useState(false);
 
@@ -207,6 +216,8 @@ export default function LogExercisePage({
         );
         // The values stay put, so the next set of the same weight is one tap.
         setData({ ...data, sets: [...data.sets, saved] });
+        // The rest begins the moment the set ends. No button.
+        setLastLoggedAt(Date.now());
       }
     } catch (e) {
       console.error("writing the set failed", e);
@@ -302,7 +313,13 @@ export default function LogExercisePage({
   const lastTime = sessions[0];
 
   return (
-    <div className="flex flex-col gap-5">
+    /*
+      Sixteen rather than twenty between the parts of this screen. It carries
+      more than any other — name, movement, history, the rest, two fields, a
+      twelve key pad and the action — and at twenty the rest timer pushed it
+      thirteen points past the fold. Still on the four point scale.
+    */
+    <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <ScreenTitle>Workout</ScreenTitle>
         <h1 className="text-hero text-ink font-condensed">
@@ -449,6 +466,15 @@ export default function LogExercisePage({
             {busy ? "Saving" : "Start logging"}
           </button>
         </>
+      ) : null}
+
+      {/*
+        The rest starts itself when a set is logged, so there is no button and
+        no decision. It appears only after a set has been logged on this visit,
+        because there is nothing to time before that.
+      */}
+      {lastLoggedAt !== null && !showingMovement && !asking && !editingId ? (
+        <RestTimer since={lastLoggedAt} />
       ) : null}
 
       {showingMovement || asking ? null : (
