@@ -327,12 +327,13 @@ one.
 
 ## Where "what's next" comes from
 
-From the weekday split. Programs are a later milestone and Today does not read
-from them yet, because the data model has no concept of an activated program and
-locking that model matters more than the feature does.
+Today reads the active program first, and falls back to the weekday split.
 
-When programs arrive, they take precedence over the split, and this section is
-revised then rather than anticipated now.
+A program day assigned to this weekday wins. If there is none, the weekday split
+answers. The six regions stay exactly as they are for days that are improvised,
+which is most of them when no program is active.
+
+Until programs are built, only the split answers, and that is the whole rule.
 
 ---
 
@@ -412,6 +413,73 @@ promoting any one of them would be a lie about which day matters.
 
 Loading, error, and the case where no day has been answered yet. There is no
 empty state beyond that: the seven weekdays always exist, answered or not.
+
+---
+
+# Program — following a real program
+
+A later milestone than the weekday schedule above, specified here because it
+shapes decisions being made now.
+
+## A split day is not always one region
+
+`Push` is chest, shoulders and triceps. `Pull` is back and biceps. The six
+regions describe what to train on an improvised day; they do not describe a
+program's days, and forcing them to would misdescribe the training.
+
+`splits.target_muscles` is already a list, so this needs no change to the data
+model. What needs changing is the control: choosing regions becomes multi-select
+with a name, so `chest + shoulders + triceps` can be called `Push`. Today then
+says `PUSH`, and improvising within it opens the picker filtered to all three.
+
+## Programs are the owner's data, never shipped
+
+The repository ships the structure. The owner's database holds their copy of
+what they follow.
+
+No program is built in. There is no seed file, no bundled program data, and no
+`built-in programs` concept. A program is entered through the exercise picker
+like anything else, which also means the stored reference is REIGN's own
+exercise, so there is no name-mapping table to build or maintain.
+
+This is a design constraint, not a preference. Shipping a published program's
+contents as application data would be someone else's material redistributed.
+
+## Shape
+
+Three tables, added beside the seven rather than altering any of them:
+
+- a program: a name, and whether it is active
+- a program day: its name, its muscles, and the weekday it is assigned to, which
+  may be empty
+- a program day's exercises: which, in what order, with sets and a rep range
+
+The assignment lives on the program day. `splits` stays exactly what it is: what
+is trained on a weekday when no program is driving.
+
+`workouts.split_name` still copies the day's name onto the workout, so history
+survives a program being changed or deleted.
+
+## What Today says
+
+`PUSH`, then `Bigger Leaner Stronger · Monday`.
+
+**Not a day number.** `Day 1` reintroduces the program day counter that
+`CLAUDE.md` forbids and that this specification's `Week 6 - Day 4` was corrected
+for. The weekday already separates Monday's `Push` from Thursday's `Push`, so
+the number carries nothing but the feeling of being on a schedule.
+
+## Rep ranges seed, they do not override
+
+`exercise_targets` holds one rep range per exercise for the whole app, which is
+the statement that a lift has a rep range. A program day prescribing its own
+ranges is a different statement, and having both would leave double progression
+reading a row that changes meaning depending on which day it was written from.
+
+A program day's ranges **seed** `exercise_targets` the first time that exercise
+is used, and after that the per-exercise row is the truth. That keeps the
+progression rule reading one place, and matches how the owner actually
+progresses: per lift, not per day.
 
 ---
 

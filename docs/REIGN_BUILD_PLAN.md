@@ -216,6 +216,16 @@ written down here so "after slice E" means something.
 | E | Rest timer with screen wake lock | |
 | F | PR detection and the last-time line | |
 
+Two additions, decided while building M2:
+
+- **Multi-muscle splits, after B.** `Push` is chest, shoulders and triceps. The
+  data model already allows it; the control does not. Small, and it removes the
+  limitation immediately.
+- **Programs, after D.** Entering one is miserable without the search-first
+  picker, and prescribed rep ranges are decoration without double progression.
+  This pulls the program half of M6 ahead of M5 variety, deliberately: variety
+  exists for improvised days, and following a program means fewer of them.
+
 ---
 
 ## Change today, and why it waits for slice B
