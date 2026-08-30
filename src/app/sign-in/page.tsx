@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
+import { Wordmark } from "@/components/Wordmark";
 import { getSupabase } from "@/lib/supabase";
 
 /**
@@ -49,9 +50,7 @@ export default function SignInPage() {
   return (
     <main className="px-gutter pt-safe flex flex-1 flex-col">
       <header className="pt-6">
-        <p className="text-ink text-xl leading-6 font-bold tracking-[0.3em]">
-          REIGN
-        </p>
+        <Wordmark />
       </header>
 
       <h1 className="text-title text-muted pt-6 uppercase">Sign in</h1>

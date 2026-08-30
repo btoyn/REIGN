@@ -33,8 +33,9 @@ Gold is an accent, not a background. Use it for the primary button, the active
 tab, completed sets, and PRs.
 
 BRAND ASSETS
-The supplied wordmark PNGs are opaque with a baked-in near-black background and
-cannot sit on the app background. Use a text wordmark until clean exports arrive.
+The wordmark is in use. assets/brand/reign-wordmark-transparent.png is derived
+from the supplied PNG by removing its flat near-black background and its empty
+margin. No ink was changed. The supplied file is untouched beside it.
 The supplied icon is 255x230. A real icon is square and 1024x1024. Use a
 placeholder. Do not upscale or alter the supplied files.
 Never recreate the lion in CSS, SVG, text, or generated graphics.
