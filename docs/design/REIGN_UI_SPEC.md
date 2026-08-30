@@ -629,8 +629,13 @@ The phone talks to one host on gym wifi rather than two, the images arrive sized
 for the screen instead of at 850 pixels wide, and Vercel caches them at the edge
 after the first request.
 
-Measured rather than assumed: 72,823 bytes for the original against 8,694 at the
-256-pixel width a phone actually needs. Eight and a half times smaller.
+Measured on a three-times density phone, which is what the owner has: the pair
+of photographs costs 80,434 bytes through our origin against 145,018 linked
+directly. About 45 percent less.
+
+An earlier note here claimed eight and a half times smaller. That was the 256
+pixel width, which a three-times screen never picks; it chooses 1200 for
+sharpness. The saving is real but smaller than first written.
 
 This was found by accident and is worth recording. A page linking the images
 directly failed on all twelve and took 29 seconds to do it. The cause was the

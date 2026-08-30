@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 
+import { ExerciseImages } from "@/components/ExerciseImages";
 import { NumberPad, PadKey } from "@/components/NumberPad";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { Skeleton } from "@/components/Skeleton";
@@ -49,6 +50,14 @@ export default function LogExercisePage({
   const [reps, setReps] = useState("");
   const [field, setField] = useState<Field>("weight");
   const [editingId, setEditingId] = useState<string | null>(null);
+  /**
+   * The photographs are asked for, never pushed.
+   *
+   * Most exercises are familiar. Showing them by default spends bandwidth on
+   * gym wifi for a picture nobody needed, and measurably pushed LOG SET 48
+   * points behind the tab bar. Asked for, they get the whole screen.
+   */
+  const [showingMovement, setShowingMovement] = useState(false);
   const [busy, setBusy] = useState(false);
   const [writeFailed, setWriteFailed] = useState(false);
 
@@ -223,7 +232,27 @@ export default function LogExercisePage({
         page. By the fourth set the pad would otherwise be off screen, which is
         exactly when it is needed most.
       */}
-      {sets.length === 0 ? (
+      <button
+        type="button"
+        onClick={() => setShowingMovement((v) => !v)}
+        className={`${quiet} self-start`}
+      >
+        {showingMovement ? "Hide movement" : "Show movement"}
+      </button>
+
+      {/*
+        Looking and logging are different things, so they do not share the
+        screen. While the movement is shown it gets the whole of it, and the pad
+        comes back when it is dismissed. Trying to fit both put the primary
+        action behind the tab bar.
+      */}
+      {showingMovement && exercise ? (
+        <ExerciseImages
+          key={exercise.id}
+          exerciseId={exercise.id}
+          exerciseName={exercise.name}
+        />
+      ) : sets.length === 0 ? (
         <p className="text-body text-muted">No sets yet.</p>
       ) : (
         <ul className="max-h-36 overflow-y-auto">
@@ -265,38 +294,42 @@ export default function LogExercisePage({
         </ul>
       )}
 
-      <div className="flex gap-3">
-        <ValueField
-          label="Weight"
-          suffix="lb"
-          value={weight}
-          active={field === "weight"}
-          onSelect={() => setField("weight")}
-        />
-        <ValueField
-          label="Reps"
-          value={reps}
-          active={field === "reps"}
-          onSelect={() => setField("reps")}
-        />
-      </div>
+      {showingMovement ? null : (
+        <>
+          <div className="flex gap-3">
+            <ValueField
+              label="Weight"
+              suffix="lb"
+              value={weight}
+              active={field === "weight"}
+              onSelect={() => setField("weight")}
+            />
+            <ValueField
+              label="Reps"
+              value={reps}
+              active={field === "reps"}
+              onSelect={() => setField("reps")}
+            />
+          </div>
 
-      <NumberPad onKey={press} decimalDisabled={field === "reps"} />
+          <NumberPad onKey={press} decimalDisabled={field === "reps"} />
 
-      {writeFailed ? (
-        <p role="alert" className="text-body text-ink">
-          That did not save. Check your connection and try again.
-        </p>
-      ) : null}
+          {writeFailed ? (
+            <p role="alert" className="text-body text-ink">
+              That did not save. Check your connection and try again.
+            </p>
+          ) : null}
 
-      <button
-        type="button"
-        disabled={!canLog || busy}
-        onClick={commit}
-        className={primaryAction}
-      >
-        {busy ? "Saving" : editingId ? "Save set" : "Log set"}
-      </button>
+          <button
+            type="button"
+            disabled={!canLog || busy}
+            onClick={commit}
+            className={primaryAction}
+          >
+            {busy ? "Saving" : editingId ? "Save set" : "Log set"}
+          </button>
+        </>
+      )}
 
       {editingId ? (
         <div className="flex items-baseline justify-between">
