@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import { Skeleton } from "@/components/Skeleton";
 import { quiet, secondaryAction } from "@/components/controls";
 import { Exercise, fetchLibrary } from "@/lib/exercises";
-import { fetchFrequentExercises, fetchRecentExercises } from "@/lib/history";
+import { fetchTrainingHistory } from "@/lib/history";
 import {
   fetchHiddenExerciseIds,
   hideExercise,
@@ -21,6 +21,14 @@ import {
   wantsEquipmentHeadings,
 } from "@/lib/regions";
 import { search } from "@/lib/search";
+import {
+  bucketStaleness,
+  byStaleness,
+  daysSince,
+  describeRow,
+  stalenessLabel,
+} from "@/lib/variety";
+import { todayDate } from "@/lib/workouts";
 
 /**
  * Choose an exercise.
@@ -43,7 +51,18 @@ type Data =
       recent: Exercise[];
       frequent: Exercise[];
       hidden: Set<string>;
+      /** Exercise id to the date it was last performed. Drives variety. */
+      lastPerformed: Map<string, string>;
     };
+
+/**
+ * When each exercise was last performed, available to every row.
+ *
+ * Carried in context rather than threaded through Browse, its buckets, its
+ * headed groups and every list: that is seven hand-offs of the same value, and
+ * an easy place to drop it in one branch and not notice.
+ */
+const LastPerformed = createContext<Map<string, string>>(new Map());
 
 /** Where in browse the owner is. Search replaces all of it while there is a query. */
 type View =
@@ -81,13 +100,19 @@ export function ExercisePicker({
     Promise.all([
       fetchLibrary(),
       // History is the owner's own, and is allowed to be empty.
-      fetchRecentExercises(),
-      fetchFrequentExercises(),
+      fetchTrainingHistory(),
       fetchHiddenExerciseIds(),
     ])
-      .then(([library, recent, frequent, hidden]) => {
+      .then(([library, history, hidden]) => {
         if (active)
-          setData({ status: "ready", library, recent, frequent, hidden });
+          setData({
+            status: "ready",
+            library,
+            recent: history.recent,
+            frequent: history.frequent,
+            lastPerformed: history.lastPerformed,
+            hidden,
+          });
       })
       .catch((e: Error) => {
         console.error("the exercise library failed to load", e);
@@ -185,100 +210,102 @@ export function ExercisePicker({
   const searching = query.trim() !== "";
 
   return (
-    <div className="flex flex-col gap-6">
-      {/*
+    <LastPerformed.Provider value={data.lastPerformed}>
+      <div className="flex flex-col gap-6">
+        {/*
         A real text field, and the only one in the app. The custom pad exists
         because numbers between sets need speed and the iOS keyboard is wrong
         for them; typing a name is exactly what a keyboard is for.
       */}
-      <input
-        type="search"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search exercises"
-        autoCapitalize="none"
-        autoCorrect="off"
-        spellCheck={false}
-        aria-label="Search exercises"
-        className="bg-surface text-ink border-border placeholder:text-muted focus:border-muted h-12 w-full rounded-md border px-4 text-base outline-none"
-      />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search exercises"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          aria-label="Search exercises"
+          className="bg-surface text-ink border-border placeholder:text-muted focus:border-muted h-12 w-full rounded-md border px-4 text-base outline-none"
+        />
 
-      {/*
+        {/*
         Curating is a mode with one switch, not a control on 462 rows. While it
         is on the screen says so plainly, because a list where tapping deletes
         instead of adds must never be mistaken for the normal one.
       */}
-      {curating ? (
-        <div className="flex flex-col gap-3">
-          <p className="text-lead text-ink">Hiding exercises</p>
-          <p className="text-body text-muted">
-            Tap any exercise to hide it, or to bring back one you hid. Hidden
-            exercises stay out of browse and search. Nothing is deleted.
-          </p>
-          {hideFailed ? (
-            <p role="alert" className="text-body text-ink">
-              Could not change that. Hiding needs a database update that has not
-              been applied yet.
+        {curating ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-lead text-ink">Hiding exercises</p>
+            <p className="text-body text-muted">
+              Tap any exercise to hide it, or to bring back one you hid. Hidden
+              exercises stay out of browse and search. Nothing is deleted.
             </p>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => {
-              setHideFailed(false);
-              setCurating(false);
-            }}
-            className={`${quiet} self-start`}
-          >
-            Done
-          </button>
-        </div>
-      ) : null}
+            {hideFailed ? (
+              <p role="alert" className="text-body text-ink">
+                Could not change that. Hiding needs a database update that has
+                not been applied yet.
+              </p>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                setHideFailed(false);
+                setCurating(false);
+              }}
+              className={`${quiet} self-start`}
+            >
+              Done
+            </button>
+          </div>
+        ) : null}
 
-      {searching ? (
-        visible(results).length === 0 ? (
-          <p className="text-body text-muted">
-            Nothing matches “{query.trim()}”.
-          </p>
+        {searching ? (
+          visible(results).length === 0 ? (
+            <p className="text-body text-muted">
+              Nothing matches “{query.trim()}”.
+            </p>
+          ) : (
+            <ExerciseList
+              exercises={visible(results)}
+              onPick={curating ? toggleHidden : onPick}
+              picking={curating ? pendingHide : picking}
+              hidden={hidden}
+              curating={curating}
+              caption={`${visible(results).length} ${visible(results).length === 1 ? "result" : "results"}`}
+            />
+          )
         ) : (
-          <ExerciseList
-            exercises={visible(results)}
+          <Browse
+            gym={visible(gym)}
+            recent={visible(data.recent)}
+            frequent={visible(data.frequent)}
+            view={view}
+            setView={setView}
             onPick={curating ? toggleHidden : onPick}
             picking={curating ? pendingHide : picking}
             hidden={hidden}
             curating={curating}
-            caption={`${visible(results).length} ${visible(results).length === 1 ? "result" : "results"}`}
           />
-        )
-      ) : (
-        <Browse
-          gym={visible(gym)}
-          recent={visible(data.recent)}
-          frequent={visible(data.frequent)}
-          view={view}
-          setView={setView}
-          onPick={curating ? toggleHidden : onPick}
-          picking={curating ? pendingHide : picking}
-          hidden={hidden}
-          curating={curating}
-        />
-      )}
+        )}
 
-      {/*
+        {/*
         The way in, once, below whatever is on screen. It lives here rather than
         inside browse so it is reachable while searching too: an exercise you
         hid is most likely to be found again by searching for it, and it would
         otherwise have no way back.
       */}
-      {curating ? null : (
-        <button
-          type="button"
-          onClick={() => setCurating(true)}
-          className={`${quiet} self-start`}
-        >
-          Hide exercises I never do
-        </button>
-      )}
-    </div>
+        {curating ? null : (
+          <button
+            type="button"
+            onClick={() => setCurating(true)}
+            className={`${quiet} self-start`}
+          >
+            Hide exercises I never do
+          </button>
+        )}
+      </div>
+    </LastPerformed.Provider>
   );
 }
 
@@ -303,6 +330,9 @@ function Browse({
   hidden: Set<string>;
   curating: boolean;
 }) {
+  const lastPerformed = useContext(LastPerformed);
+  const today = todayDate();
+
   if (view.at === "bucket") {
     const { region, bucket } = view;
     const headed = wantsEquipmentHeadings(region, bucket);
@@ -318,7 +348,7 @@ function Browse({
               <ExerciseList
                 key={group.key}
                 caption={group.label}
-                exercises={group.exercises}
+                exercises={byStaleness(group.exercises, lastPerformed, today)}
                 onPick={onPick}
                 picking={picking}
                 hidden={hidden}
@@ -328,9 +358,12 @@ function Browse({
           </div>
         ) : (
           <ExerciseList
-            exercises={[...bucket.exercises].sort((a, b) =>
-              a.name.localeCompare(b.name),
-            )}
+            /*
+              Sorted by how long since each was last done, which is the point of
+              browsing rather than searching: what is being neglected rises to
+              the top, and what has never been done follows.
+            */
+            exercises={byStaleness(bucket.exercises, lastPerformed, today)}
             onPick={onPick}
             picking={picking}
             hidden={hidden}
@@ -355,7 +388,7 @@ function Browse({
             onBack={() => setView({ at: "regions" })}
           />
           <ExerciseList
-            exercises={[...mine].sort((a, b) => a.name.localeCompare(b.name))}
+            exercises={byStaleness(mine, lastPerformed, today)}
             onPick={onPick}
             picking={picking}
             hidden={hidden}
@@ -380,8 +413,16 @@ function Browse({
                 className="flex w-full items-baseline justify-between gap-4 py-4 text-left"
               >
                 <span className="text-lead text-ink">{bucket.label}</span>
+                {/*
+                  How long since this part was trained, rather than how many
+                  exercises are filed under it. The region row above already
+                  gave the size of what you were entering; having chosen the
+                  region, the question is which part has been left alone.
+                */}
                 <span className="text-body text-muted">
-                  {bucket.exercises.length}
+                  {stalenessLabel(
+                    bucketStaleness(bucket.exercises, lastPerformed, today),
+                  )}
                 </span>
               </button>
             </li>
@@ -477,6 +518,9 @@ function ExerciseList({
   /** While curating, a tap hides or unhides rather than adds. */
   curating: boolean;
 }) {
+  const lastPerformed = useContext(LastPerformed);
+  const today = todayDate();
+
   return (
     <div className="flex flex-col gap-2">
       {caption ? (
@@ -519,7 +563,10 @@ function ExerciseList({
                       ? "Hidden · tap to bring back"
                       : curating
                         ? "Tap to hide"
-                        : (exercise.equipment ?? exercise.primary_muscle)}
+                        : describeRow(
+                            exercise,
+                            daysSince(exercise.id, lastPerformed, today),
+                          )}
                 </span>
               </button>
             </li>

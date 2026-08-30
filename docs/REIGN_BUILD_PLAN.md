@@ -217,7 +217,8 @@ written down here so "after slice E" means something.
 | D | Double progression suggestions, last performance, and PR detection | Built |
 | E | Rest timer with screen wake lock | Built |
 | — | Manual cardio entry, the other half of M4 | Built |
-| — | M5 variety: browse by sub-muscle, sorted by time since last performed | Next |
+| — | M5 variety: browse by sub-muscle, sorted by time since last performed | Built |
+| — | M7 progress: history, PRs, strength trend | Next |
 
 Two additions, decided while building M2:
 
