@@ -19,7 +19,8 @@ Real programs are browsable later, but following one is optional.
 STACK
 Next.js App Router, TypeScript, Tailwind, Supabase, Vercel.
 A web app added to the iPhone home screen. Not React Native, not Expo, not App Store.
-System font stack. No custom font.
+Archivo, loaded by next/font. Condensed width for headings and large numbers,
+regular width for body. Tabular figures on everywhere.
 
 DESIGN AUTHORITY
 docs/design/REIGN_UI_SPEC.md is the visual source of truth.
@@ -32,9 +33,23 @@ decorative charts, clutter, gradients, and invented features.
 Gold is an accent, not a background. Use it for the primary button, the active
 tab, completed sets, and PRs.
 
+THE STRIP TEST
+Remove all borders, shadows and corner radii. Does the layout still
+communicate what matters? If yes, hierarchy comes from structure and
+typography, which is correct. If no, it is leaning on cosmetic noise.
+Apply this to every screen before calling it done.
+
+ONE DOMINANT ACTION
+Every screen has exactly one primary action. If two elements compete to be the
+main call to action, the screen is not finished.
+
+NEVER COLOUR ALONE
+No state is signalled by hue only. Weight, size or a marker carries it too.
+
 BRAND ASSETS
-The supplied wordmark PNGs are opaque with a baked-in near-black background and
-cannot sit on the app background. Use a text wordmark until clean exports arrive.
+The wordmark is in use. assets/brand/reign-wordmark-transparent.png is derived
+from the supplied PNG by removing its flat near-black background and its empty
+margin. No ink was changed. The supplied file is untouched beside it.
 The supplied icon is 255x230. A real icon is square and 1024x1024. Use a
 placeholder. Do not upscale or alter the supplied files.
 Never recreate the lion in CSS, SVG, text, or generated graphics.
@@ -42,6 +57,14 @@ Never recreate the lion in CSS, SVG, text, or generated graphics.
 TERMINOLOGY
 Workout, START WORKOUT, Last Workout, Program, Progress.
 Never Session.
+
+COPY
+Functional, short, consistent. Never motivational.
+Banned: "let's get after it", "ready to dominate", "you've got this",
+"unlock your potential", "your fitness journey", "today's mission",
+"crush", "legendary". Any second-person hype register.
+Use the same word for the same thing every time. Never rotate between
+Log, Train, Lift, Begin, Start.
 
 DATA RULES
 Store numbers as numbers. Never store a formatted display string in the database.
@@ -66,6 +89,14 @@ EVERY SCREEN MUST HANDLE
 Loading. Empty. Error. Not just the happy path.
 An unhandled empty state is a bug, not a later task.
 
+FEATURE ADMISSION TEST
+Before anything ships, it must answer all four:
+1. What decision or action does it help with during a workout?
+2. Which current milestone requires it?
+3. What data makes it truthful?
+4. Does REIGN_UI_SPEC.md support it?
+If it cannot answer all four, it does not ship.
+
 OUT OF SCOPE UNLESS ASKED
 Social feeds, followers, nutrition, macros, AI-generated workouts, challenges,
 badges, streaks, quotes, recovery scores, readiness scores, trainer marketplace,
@@ -83,6 +114,9 @@ M6 Weekday splits, then optional programs.
 M7 Progress. History, PRs, strength trend.
 
 WORKING RULES
+Never ship code you have not actually run. If this environment blocks testing,
+build a local equivalent and test there. A check that cannot fail is worse than
+no check.
 Do not build ahead of the current milestone, even if it seems small.
 Read docs/design/ before building a screen.
 Use existing theme tokens. Do not invent colors.

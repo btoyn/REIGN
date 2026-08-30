@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Playwright MCP output
 .playwright-mcp/
+
+# Screenshots taken while verifying in a browser
+/*.png

@@ -23,7 +23,7 @@ export default function Error({
   }, [error]);
 
   return (
-    <>
+    <main className="px-gutter pt-safe flex-1">
       <ScreenTitle>Something broke</ScreenTitle>
 
       <section className="mt-3">
@@ -40,6 +40,6 @@ export default function Error({
       >
         Try again
       </button>
-    </>
+    </main>
   );
 }

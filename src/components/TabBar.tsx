@@ -11,8 +11,9 @@ import { usePathname } from "next/navigation";
  * background, hairline top border, muted inactive items, restrained gold for
  * the active tab, modest icon size, no floating treatment and no gradient.
  *
- * This is a client component because it reads the current URL to decide which
- * tab is active.
+ * The active tab is marked three ways, not one: a gold rule along its top
+ * edge, a heavier label, and the gold itself. Colour alone is weak at a glance
+ * and disappears entirely for anyone who cannot separate gold from grey.
  */
 
 const TABS = [
@@ -35,15 +36,25 @@ export function TabBar() {
           const isActive = pathname === href;
 
           return (
-            <li key={href} className="flex-1">
+            <li key={href} className="relative flex-1">
+              {isActive ? (
+                <span
+                  aria-hidden
+                  className="bg-accent absolute inset-x-0 top-0 h-0.5"
+                />
+              ) : null}
               <Link
                 href={href}
                 aria-current={isActive ? "page" : undefined}
                 className={`text-label flex flex-col items-center justify-center gap-1.5 pt-2.5 pb-2 uppercase transition-colors ${
-                  isActive ? "text-accent" : "text-muted"
+                  isActive ? "text-accent font-bold" : "text-muted"
                 }`}
               >
-                <Icon size={20} strokeWidth={1.75} aria-hidden />
+                <Icon
+                  size={20}
+                  strokeWidth={isActive ? 2.25 : 1.75}
+                  aria-hidden
+                />
                 {label}
               </Link>
             </li>
