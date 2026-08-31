@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
+import { daysBetween } from "@/lib/variety";
 
 /**
  * What has been done, read back.
@@ -159,6 +160,55 @@ export function shortDate(date: string): string {
   const p = parts(date);
   if (!p || p.m < 1 || p.m > 12) return date;
   return `${p.d} ${MONTHS[p.m - 1]} ${p.y}`;
+}
+
+/**
+ * How much training there has actually been lately.
+ *
+ * A count over a window, never a streak. CLAUDE.md puts streaks out of scope,
+ * and rightly: a streak turns one missed Tuesday into a punishment, and this
+ * has to survive a week off with a cold.
+ *
+ * The window before it is shown alongside, because a number on its own says
+ * nothing. Fourteen is good or bad depending on what the month before was.
+ */
+export const CONSISTENCY_DAYS = 28;
+
+export type Consistency = {
+  recent: number;
+  /** The same window immediately before, or null when there is no history there. */
+  previous: number | null;
+};
+
+export function consistency(
+  workouts: PastWorkout[],
+  today: string,
+  days: number = CONSISTENCY_DAYS,
+): Consistency {
+  let recent = 0;
+  let previous = 0;
+  let anyOlder = false;
+
+  for (const workout of workouts) {
+    const ago = daysBetween(workout.date, today);
+    if (ago < days) recent += 1;
+    else if (ago < days * 2) previous += 1;
+    if (ago >= days) anyOlder = true;
+  }
+
+  return { recent, previous: anyOlder ? previous : null };
+}
+
+/** "14 workouts in the last 4 weeks", with the number given separately. */
+export function consistencyLabel(days: number = CONSISTENCY_DAYS): string {
+  const weeks = Math.round(days / 7);
+  return `workouts in the last ${weeks} weeks`;
+}
+
+/** The window before, when there is one to compare against. */
+export function describePrevious(c: Consistency): string | null {
+  if (c.previous === null) return null;
+  return `${c.previous} in the ${Math.round(CONSISTENCY_DAYS / 7)} weeks before that`;
 }
 
 export type Month = { label: string; workouts: PastWorkout[] };

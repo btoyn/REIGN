@@ -13,7 +13,7 @@ import {
   elapsedMinutes,
   monthLabel,
 } from "@/lib/progress";
-import { LoggedSet, fetchSetsForEntries } from "@/lib/sets";
+import { LoggedSet, describeSets, fetchSetsForEntries } from "@/lib/sets";
 import {
   Workout,
   WorkoutExercise,
@@ -263,18 +263,3 @@ function describeWhen(workout: Workout): string {
   return minutes === null ? when : `${when} · ${minutes} min`;
 }
 
-/**
- * What has been logged for one exercise, in one line.
- *
- * Every set when they differ, and "3 × 135 lb × 8" when they do not, because a
- * straight-set exercise repeating itself three times is noise rather than
- * information. Assembled here; the database holds numbers.
- */
-function describeSets(sets: LoggedSet[]): string {
-  if (sets.length === 0) return "No sets yet";
-
-  const written = sets.map((s) => `${s.weight} lb × ${s.reps}`);
-  const allSame = written.every((w) => w === written[0]);
-  if (allSame && sets.length > 1) return `${sets.length} × ${written[0]}`;
-  return written.join("   ");
-}

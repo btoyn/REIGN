@@ -10,7 +10,10 @@ import { quiet, secondaryAction } from "@/components/controls";
 import {
   PastWorkout,
   byMonth,
+  consistency,
+  consistencyLabel,
   dayLabel,
+  describePrevious,
   describeWorkout,
   fetchWorkoutHistory,
 } from "@/lib/progress";
@@ -19,6 +22,7 @@ import {
   RECORDS_ON_PROGRESS,
   fetchRecords,
 } from "@/lib/records";
+import { todayDate } from "@/lib/workouts";
 
 /**
  * Progress — history first.
@@ -33,8 +37,10 @@ import {
  * records before the history would be the analytics overload the spec warns
  * about.
  *
- * The strength trend is the next slice. It is calculated from this same data,
- * so nothing here needs a column added later.
+ * Above both, how much training there has actually been: a count over the last
+ * four weeks with the four before it beside it, which is the large number with
+ * a restrained label the specification asks for. A count, never a streak — a
+ * streak turns one missed Tuesday into a punishment.
  *
  * There is no primary action, the way Program has none. This is a screen for
  * reading, and promoting one row would be a lie about which workout matters.
@@ -129,6 +135,15 @@ export default function ProgressPage() {
       ) : null}
 
       {/*
+        How much training there has been lately, and what it was before that.
+        A number on its own says nothing: fourteen is good or bad depending on
+        what the month before held.
+      */}
+      {state.status === "ready" && state.workouts.length > 0 ? (
+        <Consistency workouts={state.workouts} />
+      ) : null}
+
+      {/*
         Absent until there is one, the same rule Recent and Frequent follow in
         the picker. An empty list is worse than no list.
       */}
@@ -200,6 +215,24 @@ export default function ProgressPage() {
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function Consistency({ workouts }: { workouts: PastWorkout[] }) {
+  const count = consistency(workouts, todayDate());
+  const before = describePrevious(count);
+
+  return (
+    <div className="mt-4 flex flex-col gap-1">
+      <p className="text-display text-ink font-condensed">{count.recent}</p>
+      <p className="text-body text-muted">{consistencyLabel()}</p>
+      {/*
+        Absent on day one rather than reading "0 in the 4 weeks before that",
+        which would be a nought about a period the owner had not started
+        training in.
+      */}
+      {before ? <p className="text-body text-muted">{before}</p> : null}
     </div>
   );
 }
