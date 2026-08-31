@@ -829,6 +829,51 @@ order they are worth having:
 
 Each reads the same rows. None of them needs a column added.
 
+## Consistency
+
+How much training there has actually been: a count of finished workouts in the
+last four weeks, with the four weeks before it beside it. The count is the large
+number the specification asks for; the label under it is the restrained part.
+
+**A count over a window, never a streak.** CLAUDE.md puts streaks out of scope
+and it is right to: a streak turns one missed Tuesday into a punishment, and
+this has to survive a week off with a cold. A missed month reads as a nought,
+not as something broken.
+
+**The window before it is shown alongside**, because a number on its own says
+nothing — fourteen is good or bad depending on what the month before held. It is
+absent on day one rather than reading `0 in the 4 weeks before that`, which
+would be a nought about a period the owner had not started training in.
+
+## Strength trend
+
+One lift over time, reached by tapping its record.
+
+**There is no chart.** CLAUDE.md bans decorative charts and this specification
+prefers large numbers with restrained labels. Apply the strip test to a line
+graph here and it fails: a column of working weights in tabular figures already
+reads as a trend, and taking the graph away loses nothing, which means the graph
+was never carrying anything.
+
+What is there instead:
+
+- **The weight being lifted now**, as the large number. Not the best from a year
+  ago — that is what Records is for.
+- **How it has moved**, in one sentence: `Up 40 lb since 17 June 2026`. Two
+  points, and the wording says exactly that. Anything fitted would be arithmetic
+  presented as insight.
+- **Its best**, stated plainly beneath.
+- **Every session**, newest first, each showing its working sets and its date,
+  and each opening the workout it belonged to.
+
+**A weight that has come down says so.** `Down 20 lb since 17 June 2026`, not
+hidden, not coloured red. A deload is a decision, not a failure, and the number
+is the number.
+
+**Warm-ups are left out of the session line.** They belong on the workout
+screen, where they are part of the day, but they break the column of working
+weights that makes the trend readable.
+
 ## Records
 
 The heaviest set on every lift, calculated from the sets each time the screen
