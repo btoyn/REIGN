@@ -146,6 +146,21 @@ export function dayLabel(date: string): string {
   return `${WEEKDAYS[weekday]} ${p.d}`;
 }
 
+/**
+ * "12 August 2026", for a date that stands on its own.
+ *
+ * The history list does not need this: its month heading already carries the
+ * month and the year, so its rows say only the weekday and the day. A record
+ * has no heading above it and could be from any month of any year, so it says
+ * the whole thing. The weekday is left out because on a date two years back it
+ * is decoration.
+ */
+export function shortDate(date: string): string {
+  const p = parts(date);
+  if (!p || p.m < 1 || p.m > 12) return date;
+  return `${p.d} ${MONTHS[p.m - 1]} ${p.y}`;
+}
+
 export type Month = { label: string; workouts: PastWorkout[] };
 
 /**

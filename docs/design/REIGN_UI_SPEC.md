@@ -829,6 +829,61 @@ order they are worth having:
 
 Each reads the same rows. None of them needs a column added.
 
+## Records
+
+The heaviest set on every lift, calculated from the sets each time the screen
+opens. There is no records table and no column holding a best, per CLAUDE.md.
+
+**What counts as the record.** The heaviest working set. Ties on weight go to
+the most reps, which is the harder of the two. Warm-ups are never records, the
+same rule progression follows, and a set with no numbers on it is not an attempt
+at anything.
+
+No estimated one-rep max. That would mean picking a formula nobody chose and
+presenting arithmetic as an achievement. What was actually lifted is the record.
+
+**A record is dated the first time it was achieved.** Hitting 225 for 3 again in
+September did not set anything; it repeated something set in June. Without this
+the list would re-date old bests and every repeat would read as new.
+
+**A lift logged at nought pounds reads as reps alone** — `14 reps`, not
+`0 lb × 14`. A bodyweight movement is carrying the body, so the weight is not
+the achievement and printing a nought says the opposite of what happened.
+
+**The order is most recently set first.** What was just achieved rises, and a
+best that has stood untouched for a year sinks. Two set on the same day go
+heaviest first. That is the same instinct behind variety: recency is information
+in this app, so the list says something rather than being an index.
+
+**A workout still in progress counts.** The record set twenty minutes ago is on
+this list before the workout is closed, because the exercise screen has already
+marked it `PR` and the two must not disagree for an hour. This is the same rule
+variety uses, stated once in `workouts.ts`.
+
+### Where they appear
+
+The five most recently set sit at the top of Progress, above the history, with
+the rest one tap away on their own screen. That is the shape the picker already
+uses for Recent and Frequent: a handful of the most useful, and the full list
+behind them. Opening on forty rows before the history is the analytics overload
+this specification warns about.
+
+The section is absent until there is a record, and the link to the full list is
+absent until there are more than five.
+
+**The rows do not link anywhere.** One exercise's history over time is the third
+part of Progress; a row that looks tappable and is not would be worse than a row
+that plainly is not.
+
+### Two headings at one type size
+
+Progress now holds two lists, `RECORDS` and `HISTORY`, and the history has month
+headings inside it. There is one label size in the type scale and inventing a
+second would be inventing a token, so the spacing carries the difference: a
+label sits tight against the rows it names, and far from whatever came before
+it. Nothing about it is a border, a box or a radius, so it survives the strip
+test.
+
 ## History
 
 Every finished workout, newest first. The one in progress is not here: it is on

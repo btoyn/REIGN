@@ -219,8 +219,8 @@ written down here so "after slice E" means something.
 | — | Manual cardio entry, the other half of M4 | Built |
 | — | M5 variety: browse by sub-muscle, sorted by time since last performed | Built |
 | — | M7 part one: Progress shows every finished workout | Built |
-| — | M7 part two: records, calculated from the same rows | Next |
-| — | M7 part three: strength trend and consistency | Queued |
+| — | M7 part two: records, calculated from the same rows | Built |
+| — | M7 part three: strength trend and consistency | Next |
 
 Two additions, decided while building M2:
 
