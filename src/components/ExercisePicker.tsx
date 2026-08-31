@@ -115,8 +115,15 @@ export function ExercisePicker({
           });
       })
       .catch((e: Error) => {
+        /*
+          Nothing is reported once the screen has gone. A request abandoned by
+          navigating away rejects like any other failure, but there is nobody
+          left to tell and no state left to set, so saying so in the console
+          only buries the failures that do matter.
+        */
+        if (!active) return;
         console.error("the exercise library failed to load", e);
-        if (active) setData({ status: "error" });
+        setData({ status: "error" });
       });
 
     return () => {
