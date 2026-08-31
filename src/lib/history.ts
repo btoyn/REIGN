@@ -1,6 +1,6 @@
 import { fetchExercisesByIds, type Exercise } from "@/lib/exercises";
 import { getSupabase } from "@/lib/supabase";
-import { todayDate } from "@/lib/workouts";
+import { hasBeenPerformed, todayDate } from "@/lib/workouts";
 
 /**
  * What the owner has actually done, read once.
@@ -51,23 +51,12 @@ export async function fetchTrainingHistory(): Promise<TrainingHistory> {
   if (workoutError) throw new Error(workoutError.message);
   if (!entries || entries.length === 0) return EMPTY;
 
-  /*
-    A workout counts once it is finished, and today's counts while it is still
-    being done.
-
-    Both halves matter. Without the first, a workout walked out of half way
-    through would make an exercise look performed when it may never have been,
-    which is exactly the lie variety must not tell. Without the second, nothing
-    added in the last hour would appear in Recent, and Recent is what the owner
-    reaches for while standing in the gym.
-
-    An abandoned workout is indistinguishable from one in progress until the day
-    is over, so the date is what separates them.
-  */
+  // What counts as performed is one rule, stated in workouts.ts, because
+  // records apply it too and the two must never disagree.
   const today = todayDate();
   const byId = new Map(
     (workouts ?? [])
-      .filter((w) => w.finished_at !== null || w.date === today)
+      .filter((w) => hasBeenPerformed(w, today))
       .map((w) => [w.id, w]),
   );
 

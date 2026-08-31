@@ -80,6 +80,28 @@ export function isInProgress(workout: Workout): boolean {
   return workout.finished_at === null;
 }
 
+/**
+ * Whether a workout counts as training that actually happened.
+ *
+ * Finished, or today's while it is still being done. Both halves matter.
+ * Without the first, a workout walked out of half way through would make an
+ * exercise look performed when it may never have been. Without the second,
+ * nothing done in the last hour would count, and the set just logged would be
+ * missing from Recent and from records until the workout was closed.
+ *
+ * An abandoned workout and one in progress are indistinguishable until the day
+ * is over, so the date is what separates them.
+ *
+ * The history list on Progress deliberately does not use this: a workout still
+ * in progress belongs on Today, not in the record of what is done.
+ */
+export function hasBeenPerformed(
+  workout: { date: string; finished_at: string | null },
+  today: string,
+): boolean {
+  return workout.finished_at !== null || workout.date === today;
+}
+
 /** Minutes between starting and finishing, or null if either is missing. */
 export function durationMinutes(workout: Workout): number | null {
   if (!workout.started_at || !workout.finished_at) return null;

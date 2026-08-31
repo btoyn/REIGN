@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { RecordRows } from "@/components/RecordRows";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { Skeleton } from "@/components/Skeleton";
-import { secondaryAction } from "@/components/controls";
+import { quiet, secondaryAction } from "@/components/controls";
 import {
   PastWorkout,
   byMonth,
@@ -13,6 +14,11 @@ import {
   describeWorkout,
   fetchWorkoutHistory,
 } from "@/lib/progress";
+import {
+  PersonalRecord,
+  RECORDS_ON_PROGRESS,
+  fetchRecords,
+} from "@/lib/records";
 
 /**
  * Progress — history first.
@@ -21,8 +27,14 @@ import {
  * finished workout left the screen and could not be reached again. This is
  * every one of them, newest first.
  *
- * Records and the strength trend are the next slices. They are calculated from
- * this same data, so nothing here needs a column added later.
+ * Records sit above it, the few most recently set, with the rest one tap away.
+ * That is the shape the picker already uses for Recent and Frequent: a handful
+ * of the most useful, and the full list behind them. Opening on forty rows of
+ * records before the history would be the analytics overload the spec warns
+ * about.
+ *
+ * The strength trend is the next slice. It is calculated from this same data,
+ * so nothing here needs a column added later.
  *
  * There is no primary action, the way Program has none. This is a screen for
  * reading, and promoting one row would be a lie about which workout matters.
@@ -35,7 +47,7 @@ import {
 type State =
   | { status: "loading" }
   | { status: "error" }
-  | { status: "ready"; workouts: PastWorkout[] };
+  | { status: "ready"; workouts: PastWorkout[]; records: PersonalRecord[] };
 
 export default function ProgressPage() {
   const [state, setState] = useState<State>({ status: "loading" });
@@ -44,8 +56,13 @@ export default function ProgressPage() {
   useEffect(() => {
     let active = true;
 
-    fetchWorkoutHistory()
-      .then((workouts) => active && setState({ status: "ready", workouts }))
+    // Two reads, run together. Records need the sets and the history does not,
+    // so neither waits on the other's rows.
+    Promise.all([fetchWorkoutHistory(), fetchRecords()])
+      .then(
+        ([workouts, records]) =>
+          active && setState({ status: "ready", workouts, records }),
+      )
       .catch((e: Error) => {
         /*
           Nothing is reported once the screen has gone. A request abandoned by
@@ -57,7 +74,7 @@ export default function ProgressPage() {
           console and the screen says what happened in words.
         */
         if (!active) return;
-        console.error("fetchWorkoutHistory failed", e);
+        console.error("Progress failed to load", e);
         setState({ status: "error" });
       });
 
@@ -69,7 +86,6 @@ export default function ProgressPage() {
   return (
     <div className="flex flex-col gap-3">
       <ScreenTitle>Progress</ScreenTitle>
-      <p className="text-body text-muted">Every workout you have finished.</p>
 
       {state.status === "loading" ? <LoadingRows /> : null}
 
@@ -112,47 +128,76 @@ export default function ProgressPage() {
         </div>
       ) : null}
 
+      {/*
+        Absent until there is one, the same rule Recent and Frequent follow in
+        the picker. An empty list is worse than no list.
+      */}
+      {state.status === "ready" && state.records.length > 0 ? (
+        <div className="mt-4 flex flex-col gap-2">
+          <p className="text-label text-muted uppercase">Records</p>
+          <RecordRows records={state.records.slice(0, RECORDS_ON_PROGRESS)} />
+          {state.records.length > RECORDS_ON_PROGRESS ? (
+            <Link
+              href="/progress/records"
+              className={`${quiet} mt-2 self-start`}
+            >
+              All {state.records.length} records
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+
       {state.status === "ready" && state.workouts.length > 0 ? (
-        <div className="mt-4 flex flex-col gap-8">
-          {byMonth(state.workouts).map((month) => (
-            <div key={month.label} className="flex flex-col gap-2">
-              {/*
+        <div className="mt-10 flex flex-col">
+          {/*
+            Two headings at one type size, so the spacing has to say which is
+            which. A label sits tight against the rows it names and far from
+            whatever came before, which is what separates the section from the
+            months inside it. Nothing here is a border or a box, so it survives
+            the strip test.
+          */}
+          <p className="text-label text-muted uppercase">History</p>
+          <div className="mt-4 flex flex-col gap-8">
+            {byMonth(state.workouts).map((month) => (
+              <div key={month.label} className="flex flex-col gap-2">
+                {/*
                 A spine for a long list. A year of training is a lot of dates,
                 and a date on its own does not say how long ago it was.
               */}
-              <p className="text-label text-muted uppercase">{month.label}</p>
-              <ul>
-                {month.workouts.map((workout) => (
-                  <li
-                    key={workout.id}
-                    className="border-border border-b last:border-b-0"
-                  >
-                    <Link
-                      href={`/workout/${workout.id}`}
-                      className="flex items-baseline justify-between gap-4 py-4"
+                <p className="text-label text-muted uppercase">{month.label}</p>
+                <ul>
+                  {month.workouts.map((workout) => (
+                    <li
+                      key={workout.id}
+                      className="border-border border-b last:border-b-0"
                     >
-                      <span className="flex flex-col gap-1">
-                        {/*
+                      <Link
+                        href={`/workout/${workout.id}`}
+                        className="flex items-baseline justify-between gap-4 py-4"
+                      >
+                        <span className="flex flex-col gap-1">
+                          {/*
                           The split is the name of the day, because that is how
                           the owner thinks about it. A workout started outside
                           the schedule has no split, so the date carries it.
                         */}
-                        <span className="text-lead text-ink">
-                          {workout.splitName ?? "Workout"}
+                          <span className="text-lead text-ink">
+                            {workout.splitName ?? "Workout"}
+                          </span>
+                          <span className="text-body text-muted">
+                            {describeWorkout(workout)}
+                          </span>
                         </span>
-                        <span className="text-body text-muted">
-                          {describeWorkout(workout)}
+                        <span className="text-body text-muted shrink-0">
+                          {dayLabel(workout.date)}
                         </span>
-                      </span>
-                      <span className="text-body text-muted shrink-0">
-                        {dayLabel(workout.date)}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
       ) : null}
     </div>
@@ -161,7 +206,11 @@ export default function ProgressPage() {
 
 function LoadingRows() {
   return (
-    <div className="mt-6 flex flex-col gap-2" aria-busy="true" aria-label="Loading">
+    <div
+      className="mt-6 flex flex-col gap-2"
+      aria-busy="true"
+      aria-label="Loading"
+    >
       <Skeleton className="h-4 w-28" />
       <div className="flex flex-col">
         {Array.from({ length: 5 }).map((_, i) => (
