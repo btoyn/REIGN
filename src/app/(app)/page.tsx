@@ -15,6 +15,11 @@ import {
   fetchCardioForDate,
 } from "@/lib/cardio";
 import {
+  TodaysProgram,
+  applyProgramDay,
+  fetchTodaysProgram,
+} from "@/lib/programs";
+import {
   Split,
   WEEKDAYS,
   fetchSplitForDay,
@@ -60,6 +65,12 @@ type Data =
       counts: WorkoutCounts;
       /** Cardio recorded today. Part of the same training day as the lifting. */
       cardio: CardioSession[];
+      /**
+       * What the followed program says about today, if a program is being
+       * followed and has anything to say. Null falls back to the split, which
+       * is what Today did before programs existed.
+       */
+      todaysProgram: TodaysProgram | null;
     };
 
 /** A one-off deviation. Deliberately not stored — see the spec. */
@@ -89,13 +100,23 @@ export default function TodayPage() {
       fetchSplitForDay(dayOfWeek),
       fetchWorkoutForDate(date),
       fetchCardioForDate(date),
+      // Never throws: a program is an addition to Today and must not be able
+      // to break it. A failure here reads as no program, and the split answers.
+      fetchTodaysProgram(dayOfWeek),
     ])
-      .then(async ([split, workout, cardio]) => {
+      .then(async ([split, workout, cardio, todaysProgram]) => {
         const counts = workout
           ? await fetchWorkoutCounts(workout.id)
           : { exercises: 0, sets: 0 };
         if (active)
-          setData({ status: "loaded", split, workout, counts, cardio });
+          setData({
+            status: "loaded",
+            split,
+            workout,
+            counts,
+            cardio,
+            todaysProgram,
+          });
       })
       .catch((e: Error) => {
         /*
@@ -161,6 +182,22 @@ export default function TodayPage() {
     setBusy(true);
     try {
       const workout = await startWorkout(date, splitName);
+
+      /*
+        A followed program fills the workout in. This is what following one
+        actually buys: without it, following changes a label on Today and the
+        owner still adds five exercises by hand every session.
+
+        Not when the day has been overridden. "Change today" means training
+        something else, and pre-loading the program's push day into an arms
+        workout would be the opposite of what was asked.
+      */
+      const plan =
+        data.status === "loaded" && override === null
+          ? data.todaysProgram
+          : null;
+      if (plan) await applyProgramDay(workout.id, plan.day.id);
+
       router.push(`/workout/${workout.id}`);
     } catch (e) {
       console.error("startWorkout failed", e);
@@ -276,6 +313,31 @@ function renderLoaded(p: LoadedProps) {
     return <DoneBlock {...p} workout={data.workout} />;
   }
 
+  /*
+    A followed program answers the day before the split does, and before the
+    weekday question is asked at all: if the program says today is Push, there
+    is nothing to ask.
+
+    The program day is passed as a split because that is exactly what it is at
+    this point — a name and the muscles it covers. Only the line underneath
+    changes, to say which program it came from.
+  */
+  if (data.todaysProgram) {
+    const { program, day } = data.todaysProgram;
+    return (
+      <PlannedBlock
+        {...p}
+        programName={program.name}
+        split={{
+          id: day.id,
+          day_of_week: day.day_of_week ?? 0,
+          name: day.name,
+          target_muscles: day.target_muscles,
+        }}
+      />
+    );
+  }
+
   if (!data.split) {
     return (
       <AskBlock
@@ -370,7 +432,8 @@ function PlannedBlock({
   onOpenChange,
   onCancelChange,
   onStart,
-}: LoadedProps & { split: Split }) {
+  programName,
+}: LoadedProps & { split: Split; programName?: string }) {
   const name = override?.name ?? split.name;
   const resting = override === null && isRestDay(split);
 
@@ -395,7 +458,12 @@ function PlannedBlock({
             ? `Instead of ${split.name} · just today`
             : resting
               ? null
-              : `Weekday split · ${weekday}`
+              : programName
+                ? // The program and the weekday, never a day number. "Day 1"
+                  // is the counter CLAUDE.md forbids, and the weekday already
+                  // separates Monday's Push from Thursday's.
+                  `${programName} · ${weekday}`
+                : `Weekday split · ${weekday}`
         }
       />
 

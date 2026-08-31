@@ -222,7 +222,7 @@ written down here so "after slice E" means something.
 | — | M7 part two: records, calculated from the same rows | Built |
 | — | M7 part three: strength trend and consistency | Built |
 | — | M6 part one: a day made of several regions, with a name | Built |
-| — | M6 part two: following a real program. Needs three new tables | Blocked on SQL |
+| — | M6 part two: following a real program | Built |
 
 Two additions, decided while building M2:
 

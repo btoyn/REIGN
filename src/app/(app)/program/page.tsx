@@ -1,11 +1,24 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+
+import Link from "next/link";
 
 import { RegionChoice } from "@/components/RegionChoice";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { Skeleton } from "@/components/Skeleton";
-import { quiet, secondaryAction } from "@/components/controls";
+import { choice, quiet, secondaryAction } from "@/components/controls";
+import {
+  Program,
+  ProgramDay,
+  ProgramExercise,
+  createProgram,
+  describeProgram,
+  fetchProgramDays,
+  fetchProgramExercises,
+  fetchPrograms,
+} from "@/lib/programs";
 import {
   Split,
   WEEKDAYS,
@@ -27,6 +40,10 @@ import {
  * Changing a day here is permanent. Changing only today is a different action
  * and lives on Today, where the wrong answer is visible.
  *
+ * Programs sit beneath it. A program is a named plan with its own days, and
+ * following one is optional: with none active this screen and Today behave
+ * exactly as they did before programs existed.
+ *
  * There is no primary action. Seven weekdays are equal, and promoting one of
  * them would be a lie about which day matters.
  */
@@ -34,20 +51,44 @@ import {
 type State =
   | { status: "loading" }
   | { status: "error" }
-  | { status: "ready"; splits: Split[] };
+  | {
+      status: "ready";
+      splits: Split[];
+      programs: Program[];
+      /** Days and exercises per program, for the one line each row shows. */
+      days: Map<string, ProgramDay[]>;
+      exercises: Map<string, ProgramExercise[]>;
+    };
 
 export default function ProgramPage() {
+  const router = useRouter();
   const [state, setState] = useState<State>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   /** The weekday being changed, or null when the schedule is being read. */
   const [editing, setEditing] = useState<number | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
+  /** Naming a new program. Null when not creating one. */
+  const [newName, setNewName] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     let active = true;
 
-    fetchAllSplits()
-      .then((splits) => active && setState({ status: "ready", splits }))
+    Promise.all([fetchAllSplits(), fetchPrograms()])
+      .then(async ([splits, programs]) => {
+        // Each program's days, so a row can say how much is in it. Read
+        // together rather than one request per program.
+        const days = new Map<string, ProgramDay[]>();
+        const exercises = new Map<string, ProgramExercise[]>();
+        for (const program of programs) {
+          const mine = await fetchProgramDays(program.id);
+          days.set(program.id, mine);
+          const byDay = await fetchProgramExercises(mine.map((d) => d.id));
+          exercises.set(program.id, [...byDay.values()].flat());
+        }
+        if (active)
+          setState({ status: "ready", splits, programs, days, exercises });
+      })
       .catch((e: Error) => {
         /*
           Nothing is reported once the screen has gone. A request abandoned by
@@ -59,7 +100,7 @@ export default function ProgramPage() {
           console and the screen says what happened in words.
         */
         if (!active) return;
-        console.error("fetchAllSplits failed", e);
+        console.error("Program failed to load", e);
         setState({ status: "error" });
       });
 
@@ -81,7 +122,7 @@ export default function ProgramPage() {
       setState((current) =>
         current.status === "ready"
           ? {
-              status: "ready",
+              ...current,
               splits: [
                 ...current.splits.filter(
                   (s) => s.day_of_week !== saved.day_of_week,
@@ -97,6 +138,19 @@ export default function ProgramPage() {
       setState({ status: "error" });
     } finally {
       setSaving(null);
+    }
+  }
+
+  async function create() {
+    if (newName === null || newName.trim() === "") return;
+    setCreating(true);
+    try {
+      const program = await createProgram(newName.trim());
+      router.push(`/program/${program.id}`);
+    } catch (e) {
+      console.error("could not create the program", e);
+      setState({ status: "error" });
+      setCreating(false);
     }
   }
 
@@ -202,6 +256,102 @@ export default function ProgramPage() {
             );
           })}
         </ul>
+      ) : null}
+
+      {/*
+        Programs. Beneath the weekdays because the split is what Today reads
+        unless a program says otherwise, and because following one is optional.
+      */}
+      {state.status === "ready" ? (
+        <div className="mt-10 flex flex-col gap-2">
+          <p className="text-label text-muted uppercase">Programs</p>
+
+          {state.programs.length === 0 ? (
+            <p className="text-body text-muted">
+              None yet. A program is a named plan with its own days, which you
+              can follow instead of the weekday split above.
+            </p>
+          ) : (
+            <ul>
+              {state.programs.map((program) => (
+                <li
+                  key={program.id}
+                  className="border-border border-b last:border-b-0"
+                >
+                  <Link
+                    href={`/program/${program.id}`}
+                    className="flex items-baseline justify-between gap-4 py-4"
+                  >
+                    <span className="flex flex-col gap-1">
+                      <span className="text-lead text-ink">{program.name}</span>
+                      <span className="text-body text-muted">
+                        {describeProgram(
+                          (state.days.get(program.id) ?? []).length,
+                          (state.exercises.get(program.id) ?? []).length,
+                        )}
+                      </span>
+                    </span>
+                    {/*
+                      Which one is being followed, in a word. Not a colour and
+                      not an icon: this decides what Today reads.
+                    */}
+                    {program.is_active ? (
+                      <span className="text-body text-accent shrink-0 font-bold">
+                        Following
+                      </span>
+                    ) : null}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {newName === null ? (
+            <button
+              type="button"
+              onClick={() => setNewName("")}
+              className={`${quiet} mt-4 self-start`}
+            >
+              New program
+            </button>
+          ) : (
+            <div className="mt-4 flex flex-col gap-3">
+              <label
+                htmlFor="program-name"
+                className="text-label text-muted uppercase"
+              >
+                What is it called
+              </label>
+              <input
+                id="program-name"
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Bigger Leaner Stronger"
+                autoCapitalize="words"
+                autoCorrect="off"
+                spellCheck={false}
+                disabled={creating}
+                className="bg-surface text-ink border-border placeholder:text-muted focus:border-muted h-12 w-full rounded-md border px-4 text-base outline-none"
+              />
+              <button
+                type="button"
+                disabled={creating || newName.trim() === ""}
+                onClick={create}
+                className={`${choice} justify-center`}
+              >
+                {creating ? "Creating" : "Create it"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setNewName(null)}
+                className={`${quiet} self-start`}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
       ) : null}
     </div>
   );

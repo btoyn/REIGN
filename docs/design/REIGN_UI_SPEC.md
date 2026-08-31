@@ -498,6 +498,45 @@ survives a program being changed or deleted.
 for. The weekday already separates Monday's `Push` from Thursday's `Push`, so
 the number carries nothing but the feeling of being on a schedule.
 
+## Where programs live on screen
+
+**Beneath the weekday split on the Program tab.** The split is what Today reads
+unless a program says otherwise, and following one is optional, so it is the
+second thing on that screen rather than the first. The section is a list plus
+one quiet line to make a new one, and it says what a program is when there are
+none rather than only that there are none.
+
+**A program is one screen**: whether it is being followed, its days, and the way
+to add one or delete the lot. Following is a real button rather than a switch
+marked by colour, because it decides what Today reads.
+
+**A day is one screen**: what it prescribes, and which weekday it falls on. A
+day is added with the same control the weekday split uses, because it is the
+same question — what does this day train — and a program's day is exactly the
+multi-region day that control makes.
+
+**A prescription is a number of sets and a rep range**, both chosen from
+presets. The rep presets are the same four the exercise screen offers when a
+lift is logged for the first time: one list in the app rather than two that
+could drift, which is right because a program's range and a lift's range are the
+same kind of thing.
+
+**Deleting is behind a confirmation that names what is lost** and says workouts
+already done are not touched, which is true — history copies the day's name onto
+the workout.
+
+## Starting a workout from a program day
+
+The day's exercises are already in the workout when it opens, in the order the
+program lists them.
+
+This is what following a program actually buys. Without it, following changes a
+label on Today and the owner still adds five exercises by hand every session.
+
+It does not happen when the day has been overridden. `Change today` means
+training something else, and pre-loading the program's push day into an arms
+workout would be the opposite of what was asked.
+
 ## Rep ranges seed, they do not override
 
 `exercise_targets` holds one rep range per exercise for the whole app, which is
