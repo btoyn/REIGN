@@ -8,16 +8,13 @@ import { ScreenTitle } from "@/components/ScreenTitle";
 import { Skeleton } from "@/components/Skeleton";
 import { primaryAction, quiet, secondaryAction } from "@/components/controls";
 import { Exercise, fetchExercisesByIds } from "@/lib/exercises";
-import {
-  dayLabel,
-  elapsedMinutes,
-  monthLabel,
-} from "@/lib/progress";
+import { dayLabel, elapsedMinutes, monthLabel } from "@/lib/progress";
 import { LoggedSet, describeSets, fetchSetsForEntries } from "@/lib/sets";
 import {
   Workout,
   WorkoutExercise,
   fetchWorkoutById,
+  discardWorkout,
   fetchWorkoutExercises,
   finishWorkout,
   isInProgress,
@@ -53,6 +50,7 @@ export default function WorkoutPage({ params }: PageProps<"/workout/[id]">) {
   const [data, setData] = useState<Data>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -97,6 +95,22 @@ export default function WorkoutPage({ params }: PageProps<"/workout/[id]">) {
   function retry() {
     setData({ status: "loading" });
     setAttempt((n) => n + 1);
+  }
+
+  async function remove() {
+    if (data.status !== "ready") return;
+    setBusy(true);
+    try {
+      await discardWorkout(data.workout.id);
+      // Back to where a stored workout is looked at from, which is Progress.
+      // Today only ever shows today, so it is the wrong place to land after
+      // deleting one from three weeks ago.
+      router.push("/progress");
+    } catch (e) {
+      console.error("discardWorkout failed", e);
+      setData({ status: "error" });
+      setBusy(false);
+    }
   }
 
   async function finish() {
@@ -170,6 +184,54 @@ export default function WorkoutPage({ params }: PageProps<"/workout/[id]">) {
 
   const { workout, exercises, library, setsByEntry } = data;
   const finished = !isInProgress(workout);
+  const setCount = [...setsByEntry.values()].reduce(
+    (total, sets) => total + sets.length,
+    0,
+  );
+
+  /*
+    Deleting names what is lost before it does it, the same way Today's discard
+    does. One mis-tap must not remove a training record, and "5 exercises, 18
+    sets" is what makes the warning mean something rather than being a shrug.
+  */
+  if (confirmingDelete) {
+    return (
+      <div className="flex flex-col gap-5">
+        <ScreenTitle>Workout</ScreenTitle>
+        <div className="flex flex-col gap-1">
+          <p className="text-display text-ink font-condensed uppercase">
+            {workout.split_name ?? "Workout"}
+          </p>
+          <p className="text-body text-muted">
+            {finished ? describeWhen(workout) : "In progress"}
+          </p>
+        </div>
+        <div className="flex flex-col gap-2">
+          <p className="text-lead text-ink">Delete this workout?</p>
+          <p className="text-body text-muted">
+            {describeContents(exercises.length, setCount)} will be deleted. This
+            cannot be undone.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={remove}
+          className={secondaryAction}
+        >
+          {busy ? "Deleting" : "Delete workout"}
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => setConfirmingDelete(false)}
+          className={`${quiet} self-start`}
+        >
+          Keep it
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -246,8 +308,42 @@ export default function WorkoutPage({ params }: PageProps<"/workout/[id]">) {
           </button>
         </div>
       )}
+
+      {/*
+        Deleting a stored workout, which had no way to happen anywhere before.
+
+        Today can discard the session you are in the middle of, but only that
+        one: it looks at today and nothing else. A workout you finished, or one
+        you walked out of on a Tuesday three weeks ago, could be read from
+        Progress and never removed.
+
+        Delete rather than discard. Discarding is abandoning something you are
+        in the middle of; this removes a record that has been kept. Different
+        actions, so different words.
+      */}
+      <button
+        type="button"
+        onClick={() => setConfirmingDelete(true)}
+        className={`${quiet} self-start`}
+      >
+        Delete workout
+      </button>
     </div>
   );
+}
+
+/**
+ * What is about to be deleted, in one line.
+ *
+ * Assembled here rather than stored, like every other count in REIGN. A
+ * workout holding nothing says so, because "0 exercises, 0 sets will be
+ * deleted" reads like a bug rather than a warning.
+ */
+function describeContents(exercises: number, sets: number): string {
+  if (exercises === 0) return "Nothing in it";
+  const e = `${exercises} ${exercises === 1 ? "exercise" : "exercises"}`;
+  const s = `${sets} ${sets === 1 ? "set" : "sets"}`;
+  return `${e}, ${s}`;
 }
 
 /**
@@ -262,4 +358,3 @@ function describeWhen(workout: Workout): string {
   const minutes = elapsedMinutes(workout.started_at, workout.finished_at);
   return minutes === null ? when : `${when} · ${minutes} min`;
 }
-

@@ -721,6 +721,28 @@ reached for while standing in the gym.
 An abandoned workout and one in progress are indistinguishable until the day is
 over, so the date is what separates them.
 
+## Deleting a workout
+
+Any stored workout can be deleted from its own screen, which is reached from
+Progress.
+
+This was missing entirely. Today can discard the session you are in the middle
+of, but only that one: it looks at today and nothing else. A workout you
+finished, or one you walked out of on a Tuesday three weeks ago, could be read
+from Progress and never removed.
+
+**Delete rather than discard.** Discarding abandons something you are in the
+middle of; this removes a record that has been kept. Different actions, so
+different words — which is the terminology rule, not an exception to it.
+
+**Behind a confirmation that names what is lost**: `1 exercise, 3 sets will be
+deleted. This cannot be undone.` A workout holding nothing says `Nothing in it`,
+because warning about nought exercises and nought sets reads as a bug rather
+than a warning.
+
+It lands back on Progress afterwards. Today only ever shows today, so it is the
+wrong place to arrive after deleting something from three weeks ago.
+
 ## Substitutes
 
 The machine is taken. What else trains the same thing?
