@@ -190,6 +190,36 @@ export async function fetchWorkoutCounts(
   return { exercises: exercises.length, sets: count ?? 0 };
 }
 
+/**
+ * Swap one exercise in a workout for another, keeping its place in the order.
+ *
+ * Only ever offered while nothing has been logged against it. Once a set
+ * exists, that exercise was performed, and changing the name over it would
+ * rewrite what happened rather than change what is about to. The screen
+ * enforces that by hiding the way in; this enforces it by refusing.
+ */
+export async function swapExercise(
+  entryId: string,
+  exerciseId: string,
+): Promise<void> {
+  const { count, error: countError } = await getSupabase()
+    .from("sets")
+    .select("id", { count: "exact", head: true })
+    .eq("workout_exercise_id", entryId);
+
+  if (countError) throw new Error(countError.message);
+  if ((count ?? 0) > 0) {
+    throw new Error("that exercise has sets logged against it");
+  }
+
+  const { error } = await getSupabase()
+    .from("workout_exercises")
+    .update({ exercise_id: exerciseId })
+    .eq("id", entryId);
+
+  if (error) throw new Error(error.message);
+}
+
 /** Append an exercise to a workout, after whatever is already in it. */
 export async function addExerciseToWorkout(
   workoutId: string,

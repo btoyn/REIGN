@@ -721,6 +721,84 @@ reached for while standing in the gym.
 An abandoned workout and one in progress are indistinguishable until the day is
 over, so the date is what separates them.
 
+## Deleting a workout
+
+Any stored workout can be deleted from its own screen, which is reached from
+Progress.
+
+This was missing entirely. Today can discard the session you are in the middle
+of, but only that one: it looks at today and nothing else. A workout you
+finished, or one you walked out of on a Tuesday three weeks ago, could be read
+from Progress and never removed.
+
+**Delete rather than discard.** Discarding abandons something you are in the
+middle of; this removes a record that has been kept. Different actions, so
+different words — which is the terminology rule, not an exception to it.
+
+**Behind a confirmation that names what is lost**: `1 exercise, 3 sets will be
+deleted. This cannot be undone.` A workout holding nothing says `Nothing in it`,
+because warning about nought exercises and nought sets reads as a bug rather
+than a warning.
+
+It lands back on Progress afterwards. Today only ever shows today, so it is the
+wrong place to arrive after deleting something from three weeks ago.
+
+## Substitutes
+
+The machine is taken. What else trains the same thing?
+
+Reached from the exercise screen mid-workout, as `Swap this exercise`. Picking
+one replaces the exercise in place, keeping its position in the workout.
+
+**Only while nothing has been logged against it.** Once a set exists that
+exercise was performed, and changing the name over it would rewrite what
+happened rather than change what is about to. The link simply goes, which reads
+as "too late for that" without a sentence explaining a control that no longer
+applies. The write refuses as well, so reaching the address directly cannot do
+what the screen will not offer.
+
+### The order, and why each step is where it is
+
+1. **Different equipment first.** The reason for asking is almost always that
+   the thing you wanted is occupied, so an answer needing the same machine is
+   not an answer. Same-equipment substitutes still appear, below.
+2. **Then the closest match**, by how many secondary muscles it shares.
+3. **Then longest since last performed**, the variety rule browse already uses.
+   Between two equally good substitutes, the neglected one is the better answer.
+4. **Then the name**, so the order never depends on what the database returned.
+
+Excluded: the exercise itself, anything already in this workout, anything
+hidden, and anything outside the gym trim.
+
+**Every row says why it is being offered** — `dumbbell · 2 shared muscles · not
+done`. The order is a judgement, and a judgement that can be read is one that
+can be overruled.
+
+### Where the tags run out
+
+This is worth recording plainly, because it is the argument for the next part
+rather than a defect to hide.
+
+Asked for a substitute for the barbell bench press, the tag ranking's first
+answer is **Bent-Arm Dumbbell Pullover**. Same primary muscle, different
+equipment, and it shares both secondary muscles, so by the tags it is a perfect
+match. It is not a bench press.
+
+No ranking fixes that, because the tags genuinely do not distinguish the two.
+Two things narrow the gap:
+
+- **Mechanic**, compound against isolation, which the owner asked for and which
+  was never loaded into the table. Migration 0005 adds it and backfills 789 of
+  the 876 from the same source the library came from.
+- **The owner's own pins**, which is the real answer. They said it before any of
+  this was built: the tags will not always match real judgement. So the
+  judgement wins, and a pinned alternate is offered above anything the tags
+  found.
+
+A pin is read in both directions. Saying A can be swapped for B also answers
+"what instead of B" — the two are interchangeable rather than one subordinate to
+the other, and it means pinning a pair once rather than twice.
+
 ## Photographs
 
 Every exercise has two: the start of the movement and the end. They alternate on

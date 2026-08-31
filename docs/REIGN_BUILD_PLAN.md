@@ -223,6 +223,8 @@ written down here so "after slice E" means something.
 | — | M7 part three: strength trend and consistency | Built |
 | — | M6 part one: a day made of several regions, with a name | Built |
 | — | M6 part two: following a real program | Built |
+| — | Exercise alternatives: swap mid-workout, ranked from the library's tags | Built |
+| — | Alternatives part two: mechanic, and the owner's own pinned alternates. Migration 0005 written and tested | Owner to run SQL |
 
 Two additions, decided while building M2:
 
