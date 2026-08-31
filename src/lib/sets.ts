@@ -114,3 +114,23 @@ export async function fetchSetsForEntries(
   }
   return byEntry;
 }
+
+/**
+ * What was logged, in one line: "3 × 135 lb × 8".
+ *
+ * Every set when they differ, and a multiplier when they do not, because a
+ * straight-set exercise repeating itself three times is noise rather than
+ * information. Assembled here; the database holds numbers.
+ *
+ * The caller decides what goes in. The workout screen passes everything,
+ * because a warm-up is part of what happened that day. The strength trend
+ * passes working sets only, because a warm-up says nothing about the trend.
+ */
+export function describeSets(sets: LoggedSet[]): string {
+  if (sets.length === 0) return "No sets yet";
+
+  const written = sets.map((s) => `${s.weight} lb × ${s.reps}`);
+  const allSame = written.every((w) => w === written[0]);
+  if (allSame && sets.length > 1) return `${sets.length} × ${written[0]}`;
+  return written.join("   ");
+}
