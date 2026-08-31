@@ -432,6 +432,35 @@ model. What needs changing is the control: choosing regions becomes multi-select
 with a name, so `chest + shoulders + triceps` can be called `Push`. Today then
 says `PUSH`, and improvising within it opens the picker filtered to all three.
 
+### One region stays one tap
+
+The owner trains a weekday split — Monday is back — so the common answer must
+not get slower in order to serve the uncommon one. The six regions still save on
+a single tap with no confirm step.
+
+Combining is a second path behind one quiet line, `Combine regions into one
+day`, which is the shape the picker already uses for hiding an exercise. It is
+not a control repeated on every region.
+
+**Inside it, selecting is a toggle and nothing is written until Save.** That is
+a sentence being composed rather than a single answer being given, which is why
+it has a primary action and the six-region list does not. A chosen region is
+marked by weight and by a check, never by the gold alone.
+
+**The name field is prefilled with the regions joined** — `Chest, Shoulders &
+Arms` — and typing replaces it. Prefilling is a description rather than an
+invention: calling those three `Push` is the owner's word for it, and guessing
+it would be REIGN deciding what programme they follow. Once they have typed,
+changing a region no longer overwrites what they wrote.
+
+This is the second text field in REIGN, and it is there for the same reason as
+the first: naming a day means typing letters, which is what a keyboard is for.
+The number pad exists because numbers between sets need speed.
+
+A day with no regions cannot be saved, because that is a rest day and rest day
+is its own answer. A day with a blank name cannot be saved, because Today could
+not show it.
+
 ## Programs are the owner's data, never shipped
 
 The repository ships the structure. The owner's database holds their copy of
