@@ -13,12 +13,18 @@ export type Exercise = {
   name: string;
   primary_muscle: string;
   equipment: string | null;
+  /**
+   * What else the movement works. Read for substitutes: two lifts sharing
+   * secondary muscles are closer to each other than two that do not.
+   */
+  secondary_muscles: string[];
   /** Needed by the browse trim; see src/lib/library.ts. */
   category: string | null;
 };
 
 /** Every column the app reads about an exercise. */
-export const EXERCISE_COLUMNS = "id, name, primary_muscle, equipment, category";
+export const EXERCISE_COLUMNS =
+  "id, name, primary_muscle, secondary_muscles, equipment, category";
 
 /**
  * The whole library, in one read.

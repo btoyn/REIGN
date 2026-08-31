@@ -348,6 +348,24 @@ export default function LogExercisePage({
       </button>
 
       {/*
+        Swapping, for when the machine is taken.
+
+        Offered only while nothing has been logged against this exercise. Once a
+        set exists, that exercise was performed, and changing the name over it
+        would rewrite what happened rather than change what is about to. The
+        link simply goes, which reads as "too late for that" without a sentence
+        explaining a control that is no longer relevant.
+      */}
+      {sets.length === 0 ? (
+        <Link
+          href={`/workout/${id}/exercise/${entry}/swap`}
+          className={`${quiet} self-start`}
+        >
+          Swap this exercise
+        </Link>
+      ) : null}
+
+      {/*
         Looking and logging are different things, so they do not share the
         screen. While the movement is shown it gets the whole of it, and the pad
         comes back when it is dismissed. Trying to fit both put the primary
