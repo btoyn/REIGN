@@ -20,11 +20,20 @@ export type Exercise = {
   secondary_muscles: string[];
   /** Needed by the browse trim; see src/lib/library.ts. */
   category: string | null;
+  /**
+   * "compound" or "isolation", or null for the 87 source records that carry
+   * neither. Read for substitutes: a press is not replaced by a fly.
+   *
+   * Null is UNKNOWN and never a category of its own. Treating those 87 as a
+   * third kind would quietly invent a class of exercise the data does not
+   * describe.
+   */
+  mechanic: string | null;
 };
 
 /** Every column the app reads about an exercise. */
-export const EXERCISE_COLUMNS =
-  "id, name, primary_muscle, secondary_muscles, equipment, category";
+// prettier-ignore
+export const EXERCISE_COLUMNS = "id, name, primary_muscle, secondary_muscles, equipment, category, mechanic";
 
 /**
  * The whole library, in one read.

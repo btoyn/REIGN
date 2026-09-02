@@ -870,20 +870,62 @@ what the screen will not offer.
 
 ### The order, and why each step is where it is
 
-1. **Different equipment first.** The reason for asking is almost always that
+1. **Pinned first.** The owner said these two are interchangeable. That is a
+   judgement made in a gym about their own body, and nothing read off a tag
+   outranks it. Unpinned substitutes still appear, below.
+2. **Then the same kind of movement.** A bench press is replaced by another
+   press, not by a fly. This sits above equipment because a substitute has to
+   be the same sort of work first: a dumbbell fly is no answer to a busy bench
+   however different its equipment is. An untagged movement sorts between a
+   match and a mismatch, never as a third kind of exercise.
+3. **Then different equipment.** The reason for asking is almost always that
    the thing you wanted is occupied, so an answer needing the same machine is
    not an answer. Same-equipment substitutes still appear, below.
-2. **Then the closest match**, by how many secondary muscles it shares.
-3. **Then longest since last performed**, the variety rule browse already uses.
+4. **Then the closest match**, by how many secondary muscles it shares.
+5. **Then longest since last performed**, the variety rule browse already uses.
    Between two equally good substitutes, the neglected one is the better answer.
-4. **Then the name**, so the order never depends on what the database returned.
+6. **Then the name**, so the order never depends on what the database returned.
 
 Excluded: the exercise itself, anything already in this workout, anything
-hidden, and anything outside the gym trim.
+hidden, and anything outside the gym trim. **A pin is the one exception to the
+muscle filter**: it is offered whatever it trains, because the owner pinned it
+knowing what it is, and a pin the filter then throws away is a setting that
+silently does nothing. Hidden and already-in-the-workout still win over a pin,
+because those are facts about what can be done right now rather than
+preferences.
 
 **Every row says why it is being offered** — `dumbbell · 2 shared muscles · not
 done`. The order is a judgement, and a judgement that can be read is one that
 can be overruled.
+
+A pin says so first, because it is the reason that overrode everything else:
+`Pinned · dumbbell · 2 shared muscles · not done`. A **different** kind of
+movement is named — `cable · isolation · 9 days ago` — and a matching one is
+not. Everything near the top matches, so saying so on every row is noise;
+saying it on the ones that do not is the warning that a fly is not a press.
+
+### Pinning, on the row
+
+`PIN` at the end of each row, in label type, going to `PINNED` when it is set.
+Not gold and not a box. Swapping is this screen's one action — the owner came
+here mid-workout with a bench to get on — and pinning is a preference set on
+the way past. It is stretched to the full height of the row and padded to 44px
+wide, because it is still tapped between sets with one hand.
+
+Pinned is never told by colour. Label type is already semibold, so weight is
+not available as the marker: the word itself changes, it gains a rule under it,
+and the line above starts with `Pinned`.
+
+**Pinning marks the row and leaves it where it is.** The new pin reaches the
+top of the list next time the screen is opened, not on the tap. Re-sorting
+would slide the row up under a thumb still on the screen, and the next tap — on
+a list that has moved — swaps the exercise. Mid-workout that is a real mistake
+to make. The row saying `PINNED` is the confirmation; the order is next time's
+business.
+
+A pin that will not save leaves the row as it was and says so under the list.
+It does not take the screen down: the list is still correct and still swappable,
+which is what the owner came here for.
 
 ### Where the tags run out
 
@@ -906,9 +948,34 @@ Two things narrow the gap:
   judgement wins, and a pinned alternate is offered above anything the tags
   found.
 
+**What mechanic actually fixed, measured rather than assumed.** Asked for a
+substitute for the barbell bench press, out of the 54 chest movements the gym
+trim holds:
+
+| | before | after |
+|---|---|---|
+| first isolation offered | #2 | #45 |
+| Bent-Arm Dumbbell Pullover | #1 | #1 |
+
+So it did the job it was for — `Bodyweight Flyes` was the second thing offered
+for a bench press and is now the forty-fifth — and it did nothing at all for
+the pullover, because the source tags the pullover `compound` too. That is the
+case the pins exist for, and the reason mechanic alone was not shipped as the
+fix.
+
+Isolations are pushed down rather than removed. Sometimes a fly is what is
+free, and a list that silently withholds it is lying about the library.
+
 A pin is read in both directions. Saying A can be swapped for B also answers
 "what instead of B" — the two are interchangeable rather than one subordinate to
-the other, and it means pinning a pair once rather than twice.
+the other, and it means pinning a pair once rather than twice. The row is
+written one way round only; reading it both ways is what makes it symmetric,
+and unpinning deletes both directions because the owner only knows which
+exercise they were looking at.
+
+87 of the 876 records carry no mechanic. Those are **unknown**, never a third
+kind: an untagged movement loses its place at the top without being called a
+fly.
 
 ## Photographs
 
