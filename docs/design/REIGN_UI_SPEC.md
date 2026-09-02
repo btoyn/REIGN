@@ -1331,6 +1331,94 @@ primary actions in the app for the same thing.
 
 ---
 
+
+---
+
+# Bodyweight
+
+The one weight REIGN did not hold. Every other number in it is a weight on a
+bar; this is the weight of the person lifting it.
+
+It earns its place for a reason worth stating rather than because it is a
+common feature. The Longevity 6 standing notes set a benchmark of "a farmer
+carry at bodyweight total, half in each hand", and the app could not tell the
+owner what that number was.
+
+## Where it lives
+
+**Entering it is on the You tab**, as a row showing the current figure that
+opens its own screen. Logging a weight is a settings-ish act and You is the
+list of things about the owner; Progress is for reading.
+
+**Reading it is on Progress**, above consistency, because it is a fact about
+the owner rather than about their training.
+
+Absent from Progress entirely until there is a reading. An empty chart is worse
+than no chart.
+
+## One reading per day
+
+Enforced by the schema, not hoped for. Stepping on the scales twice on a
+Tuesday is one weigh-in that got corrected, not two readings to average, so
+writing again on the same day replaces.
+
+The entry screen pre-fills today's figure when there is one and its button says
+**Replace Today** rather than Save. Without that the owner cannot tell whether
+they are adding or overwriting, and fixing a typo would mean retyping the whole
+number.
+
+## The one chart in REIGN, and why
+
+The strength trend was deliberately given no chart: take a line away from a
+column of working weights in tabular figures and nothing is lost, which means
+the line was never carrying anything.
+
+**Bodyweight is the opposite case.** A weekly reading moves for reasons that
+have nothing to do with training — water, salt, what you ate on Tuesday — and
+the question is never "what was the figure on 19 August", it is "which way is
+this going". Four numbers in a column hide that inside the noise; a line answers
+it before a single digit has been read.
+
+The number still leads and the movement is still stated in words, so the line is
+never the only thing carrying the answer.
+
+### What the line deliberately has not got
+
+- **No axes, no gridlines.** The current weight is the large number above it and
+  the movement is in words, so nothing has to be measured off a scale. The two
+  ends are dated, which is all the width needs to mean something.
+- **No number on any point.** The endpoint is the hero figure; a value beside
+  every dot is chaos that goes unread.
+- **No fill under the line.** A filled area implies the space beneath means
+  something, and the baseline is not zero.
+- **No colour.** The line is `ink`. Gold marks the primary action, the active
+  tab, completed sets and PRs, and a bodyweight line is none of those. It is
+  also not red-for-up or green-for-down: down is not automatically good, and no
+  state in REIGN is signalled by hue alone.
+- **No tooltip.** Standard chart practice is to ship a hover layer; this skips
+  it deliberately. It is a phone screen read between sets, and every exact
+  reading is listed as text on the bodyweight screen. That list IS the table
+  view, and it is more legible than a tooltip a thumb has to chase.
+
+### x is time, not position in the list
+
+Weekly readings plotted at even spacing would draw a steady line straight
+through a month nothing was recorded in — the chart claiming data it does not
+have. Points sit at their real position in time, so a gap looks like a gap.
+
+A record where every reading is identical sits on the middle line rather than
+dividing by a zero range.
+
+## What is not here
+
+No goal weight. No BMI. No body fat estimate. No prediction, no projection, no
+"on track" judgement. Those are the body-diagram and readiness-score territory
+that is out of scope, and none of them help with a decision made during a
+workout.
+
+The direction is reported and never graded. REIGN does not have an opinion
+about which way the number should be going.
+
 # Cardio Direction
 
 REIGN does not need to duplicate Apple Watch workout tracking.

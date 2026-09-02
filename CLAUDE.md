@@ -122,6 +122,18 @@ Before anything ships, it must answer all four:
 4. Does REIGN_UI_SPEC.md support it?
 If it cannot answer all four, it does not ship.
 
+BODYWEIGHT WAS ASKED FOR, AND IS BUILT
+Entered on the You tab, read on Progress. One reading per day, enforced by the
+schema: weighing again the same day replaces, and the button says Replace Today
+so the owner can tell.
+It carries THE ONE CHART IN REIGN, and the exception is reasoned rather than a
+loosening: a weekly weight moves for reasons unrelated to training, so the
+question is which way it is going, and a column of four numbers hides that. The
+strength trend still has no chart, for the opposite reason. The number leads and
+the direction is in words, so the line is never the only thing carrying it.
+No goal weight, no BMI, no body fat, no prediction, no judgement about which way
+the number should go. See "Bodyweight" in the specification.
+
 OUT OF SCOPE UNLESS ASKED
 Social feeds, followers, nutrition, macros, AI-generated workouts, challenges,
 badges, streaks, quotes, recovery scores, readiness scores, trainer marketplace,
