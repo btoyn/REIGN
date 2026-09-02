@@ -35,7 +35,21 @@ export function BrandHeader() {
   const today = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   return (
-    <header className="flex flex-col gap-4">
+    /*
+      Centred, at the owner's request, having seen the left-aligned version on
+      the phone.
+
+      The mark and the date centre TOGETHER, as one masthead. Centring the mark
+      and leaving the date on the left gutter reads as a mistake rather than a
+      choice — two things stacked to two different rules with nothing between
+      them to explain why.
+
+      Everything below this stays on the gutter: the screen title, the split
+      name, the counts, every list. This is a masthead over left-aligned
+      content, which is its own convention. The rule that content is read from
+      one left edge is untouched.
+    */
+    <header className="flex flex-col items-center gap-4">
       <Wordmark />
       <p className="text-body text-muted h-5">{today}</p>
     </header>
