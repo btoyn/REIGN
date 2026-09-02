@@ -1376,7 +1376,7 @@ Every decision in the card follows from that one fact:
 Four fields, comma separated, percent-encoded, in this order and no other:
 
 ```
-workoutType,durationMinutes,startISO,endISO
+workoutType,durationMinutes,start,end
 ```
 
 The order is the contract with the Shortcut, which splits on commas and reads
@@ -1387,18 +1387,36 @@ No field can itself contain a comma — the type is one of two fixed words, the
 duration is an integer, and an ISO instant has none — which is what makes
 splitting on commas safe rather than lucky.
 
-Instants are **ISO 8601 with the offset they happened at**, e.g.
-`2026-09-02T17:52:00-07:00`. Not the UTC `Z` form. Both name the same instant
-and Health would accept either, but the offset says which evening this was
-where the owner was standing: a 6pm ride in California is 01:00 the next day in
-UTC, and a session that lands in Health on the wrong side of midnight is a
-session on the wrong day.
+Instants are the **local wall clock, space separated**, e.g.
+`2026-09-02 09:52:01`.
+
+This was full ISO 8601 with the offset — `2026-09-02T09:52:01-06:00` — and it
+was changed because **the Shortcut could not read it.** That is not a guess: on
+the owner's phone the string arrived intact and split correctly, and Shortcuts
+still handed it to Log Workout as a run of characters rather than a moment in
+time, so the action failed. A format the other end cannot parse is not the more
+correct one; it is broken.
+
+Two things went, and what each costs:
+
+- **The `T` separator.** iOS parses `2026-09-02 09:52:01` and does not reliably
+  parse the same value with a `T` in the middle. Nothing is lost — the `T` is
+  punctuation.
+- **The offset.** A real loss on paper and none in practice. Without it the
+  Shortcut reads the time in the phone's own zone, which is the right answer
+  because both ends are the same device seconds apart: REIGN writes the string
+  from the browser's clock and the Shortcut reads it on that same phone. The
+  offset was insurance against a reader in another zone, and there is no such
+  reader. It would only bite if the phone changed zones between writing and
+  reading, which REIGN's own screens cannot do — they send immediately.
+
+Seconds are kept, so two instants stay distinct even for a short session.
 
 Both the payload and the Shortcut's name are percent-encoded, and both need it.
-The payload carries colons, commas and the `+` of a positive offset, all of
-which mean something in a query string — an unencoded `+` arrives as a space
-and the Shortcut reads a broken timestamp. The name needs it because a Shortcut
-may be called "Log REIGN" and an unencoded space ends the URL early.
+The payload carries colons, commas and a space, all of which mean something in a
+query string — an unencoded space ends the URL early and the Shortcut reads half
+a timestamp. The name needs it for the same reason: a Shortcut may be called
+"Log REIGN".
 
 ### What is never sent
 
