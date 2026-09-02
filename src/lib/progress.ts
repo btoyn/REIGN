@@ -21,6 +21,14 @@ export type PastWorkout = {
   exercises: number;
   /** Null when the workout has no start time to measure from. */
   minutes: number | null;
+  /**
+   * Whether the owner has said this reached Apple Health.
+   *
+   * Kept in the history because the export can fail without saying so: iOS
+   * reports nothing back from a shortcuts:// link, so the only way to see which
+   * sessions actually made it is to look at the list of them.
+   */
+  sentToHealth: boolean;
 };
 
 export async function fetchWorkoutHistory(): Promise<PastWorkout[]> {
@@ -30,7 +38,10 @@ export async function fetchWorkoutHistory(): Promise<PastWorkout[]> {
     { data: workouts, error: workoutError },
     { data: entries, error: entryError },
   ] = await Promise.all([
-    supabase.from("workouts").select("id, date, split_name, started_at, finished_at"),
+    supabase
+      .from("workouts")
+      // prettier-ignore
+      .select("id, date, split_name, started_at, finished_at, sent_to_health"),
     supabase.from("workout_exercises").select("workout_id"),
   ]);
 
@@ -53,6 +64,7 @@ export async function fetchWorkoutHistory(): Promise<PastWorkout[]> {
       splitName: w.split_name,
       exercises: counts.get(w.id) ?? 0,
       minutes: elapsedMinutes(w.started_at, w.finished_at),
+      sentToHealth: w.sent_to_health,
     }));
 }
 
@@ -90,6 +102,23 @@ export function describeWorkout(workout: PastWorkout): string {
   );
 
   if (workout.minutes !== null) parts.push(`${workout.minutes} min`);
+
+  /*
+    The ones that HAVE reached Health are marked, not the ones that have not,
+    and the difference matters on the day this ships. Every workout already in
+    the history was recorded before the export existed, so marking the unsent
+    would put "not in Health" on months of sessions the owner is never going to
+    go back and enter — a line on every row, saying nothing, that cannot be
+    acted on.
+
+    Marking the sent starts silent and fills in as they are exported, which
+    also makes the mark mean something: it is the only evidence the export
+    worked, since iOS reports nothing back from a shortcuts:// link.
+
+    A word rather than a colour or a dot. REIGN never signals a state by hue
+    alone.
+  */
+  if (workout.sentToHealth) parts.push("in Health");
 
   return parts.join(" · ");
 }

@@ -13,12 +13,27 @@ import { getSupabase } from "@/lib/supabase";
  * the workout says Back.
  */
 
+// One string literal, never a concatenation: supabase-js reads it at the type
+// level to work out the shape of a row, and a joined string collapses that to
+// a plain string.
+// prettier-ignore
+const WORKOUT_COLUMNS = "id, date, split_name, started_at, finished_at, sent_to_health";
+
 export type Workout = {
   id: string;
   date: string;
   split_name: string | null;
   started_at: string | null;
   finished_at: string | null;
+  /**
+   * Whether this has been sent to Apple Health, as stated by the owner.
+   *
+   * Never set by the app. iOS tells a web page nothing about what happened
+   * after it opens a Shortcut, so tapping the button is not evidence the
+   * session arrived, and a flag set optimistically would turn "I sent this"
+   * into "I pressed a button once".
+   */
+  sent_to_health: boolean;
 };
 
 export type WorkoutExercise = {
@@ -55,7 +70,7 @@ export async function fetchWorkoutForDate(
 ): Promise<Workout | null> {
   const { data, error } = await getSupabase()
     .from("workouts")
-    .select("id, date, split_name, started_at, finished_at")
+    .select(WORKOUT_COLUMNS)
     .eq("date", date)
     .order("started_at", { ascending: false })
     .limit(1);
@@ -68,7 +83,7 @@ export async function fetchWorkoutForDate(
 export async function fetchWorkoutById(id: string): Promise<Workout | null> {
   const { data, error } = await getSupabase()
     .from("workouts")
-    .select("id, date, split_name, started_at, finished_at")
+    .select(WORKOUT_COLUMNS)
     .eq("id", id)
     .maybeSingle();
 
@@ -122,7 +137,7 @@ export async function startWorkout(
       split_name: splitName,
       started_at: new Date().toISOString(),
     })
-    .select("id, date, split_name, started_at, finished_at")
+    .select(WORKOUT_COLUMNS)
     .single();
 
   if (error) throw new Error(error.message);
@@ -134,7 +149,7 @@ export async function finishWorkout(id: string): Promise<Workout> {
     .from("workouts")
     .update({ finished_at: new Date().toISOString() })
     .eq("id", id)
-    .select("id, date, split_name, started_at, finished_at")
+    .select(WORKOUT_COLUMNS)
     .single();
 
   if (error) throw new Error(error.message);
@@ -236,4 +251,26 @@ export async function addExerciseToWorkout(
 
   if (error) throw new Error(error.message);
   return data;
+}
+
+/**
+ * Record that a finished workout reached Apple Health, or that it did not.
+ *
+ * Set by the owner, by hand, after they have seen it land. This is the only
+ * honest source for it: the export leaves through a shortcuts:// link and iOS
+ * reports nothing back, so nothing the app can observe distinguishes a Shortcut
+ * that wrote the session from one that does not exist.
+ *
+ * Reversible, because the owner can be wrong about it too.
+ */
+export async function markWorkoutSentToHealth(
+  id: string,
+  sent: boolean,
+): Promise<void> {
+  const { error } = await getSupabase()
+    .from("workouts")
+    .update({ sent_to_health: sent })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
 }

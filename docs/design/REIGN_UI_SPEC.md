@@ -1013,6 +1013,117 @@ Do not create a giant community marketplace.
 
 Reference competitive program screens only for information architecture, not branding.
 
+## A program is no longer only lifting
+
+The first version of programs could describe one shape: a day, a list of
+exercises, a number of sets and a rep range. That was enough, because the plan
+it was built for was all barbells and every day of it was the same kind of day.
+
+A plan built around several kinds of training cannot be said in that shape at
+all. Four things it needs and the old one could not hold:
+
+- **A day has a kind.** Strength, zone 2, VO2 max, rest. Without it a day with
+  no exercises is indistinguishable from an unfinished one, and Today has to
+  guess from whether the list happens to be empty.
+- **A day may be a machine and a length of time.** A zone 2 day has no
+  exercises and no reps. It has a bike and forty-five to fifty-five minutes. It
+  rendered as an empty exercise list before: a day that looked like it had
+  nothing in it rather than a day with a bike ride in it.
+- **A prescription is not always sets of reps.** A carry is measured in
+  seconds. A dead hang has no target because the target is failure. A split
+  squat is per side, which is twice the work and cannot be recovered from the
+  numbers.
+- **Rest is part of the prescription.** Ninety seconds and one hundred and
+  eighty seconds are different programs. The old shape had nowhere to say so
+  because the plan it was built for did not prescribe rest.
+
+### Which day the screen offers what
+
+ONE DOMINANT ACTION decides this, and it is the whole rule:
+
+| The day | Today's one action |
+| --- | --- |
+| Strength | **Start Workout** |
+| Cardio with exercises in it | **Start Workout** — the carries are sets |
+| Cardio with nothing to lift | **Log Cardio** |
+| Rest | neither |
+
+Never both. On a day whose one action is Log Cardio, the quiet `Add cardio`
+link at the foot of Today is left out, because the gold button and the link go
+to the same screen and offering one destination twice reads as two choices.
+
+A day that is both — a bike ride followed by carries — is started as a workout,
+because the carries are sets and a workout is what holds sets. The ride is
+logged through the quiet link, where cardio has always been logged.
+
+### The stability block
+
+Some plans open every day with the same preparation. It is held **once against
+the program**, never copied onto each of its days: it is literally the same
+block every day, and seven copies would mean seven edits to change one thing
+and six chances to miss.
+
+It renders **collapsed, as one line saying what it is and how many parts it
+has**. Expanded by default it would push the training below the fold on a phone
+and make six different days look identical at a glance. Built on `<details>`,
+so it opens without JavaScript, is reachable from a keyboard, announces itself
+to a screen reader, and survives the strip test as a line of text with a list
+under it.
+
+Its items are **not exercises and are never logged**. Breathing, balance work
+and joint rotations carry no weight, produce no personal record and are not
+sets. They are stored as a name and a prescription in words — the one place in
+REIGN where a prescription is text rather than assembled from numbers, and only
+because there are no numbers underneath it. Forcing "two minutes of breathing"
+into sets and reps would invent precision that is not there.
+
+An item may be marked as belonging to lifting days only. Band work prepares a
+shoulder for pressing and pulling, which is not what a bike ride needs.
+
+### The rest timer
+
+The timer still counts **up**, and gains a target rather than a second mode.
+
+Counting up was originally because nothing prescribed rest and a countdown
+would have invented a number nobody chose. It stays because it is the honest
+reading: ninety seconds is a floor rather than a deadline, going over it is
+fine, and a countdown that hits zero has nothing left to say about the rest
+actually being taken.
+
+When the followed program prescribes a rest for the exercise, the target is
+shown beside the count and the timer says **ready** once it is served. In
+words and in weight, never in the gold alone — a rest timer glanced at between
+two heavy sets is exactly where a colour-only signal fails.
+
+With no program, or no rest prescribed for that lift, the timer reads exactly
+as it always did.
+
+### Switching programs
+
+Which program Today reads is changed **from the You tab**. With one program the
+only way to change it was to open it and press Follow, which means knowing
+which one you are on before you can leave it.
+
+It is a switch, not a browser: it lists what exists, marks the one in use in a
+word, and changes it. What a program *contains* is still read on the Program
+tab, because that is a different question.
+
+Following nothing is a first-class choice rather than an omission. With no
+program active, Today reads the weekday split — which is what it did before
+programs existed, and is never wrong, only less specific.
+
+### What is still not stored
+
+A day count. It is `count(program_days)`, and a stored copy is a number that can
+disagree with the days it claims to count.
+
+A program day number. "Day 1" is the counter this document was corrected for,
+and the weekday already separates Tuesday's zone 2 from Thursday's.
+
+Anything assembled. "45–55 min steady" and "3 × 8–10 per side · 90s rest" are
+built at render from integers. The database holds minutes, rounds, sets and
+seconds.
+
 ---
 
 # Progress
@@ -1223,6 +1334,127 @@ it.
 
 ---
 
+
+## Apple Health, through a Shortcut
+
+REIGN cannot write to Apple Health, and this section exists partly so nobody
+tries again.
+
+HealthKit is a native iOS framework. There is no browser API for it — not a
+restricted one, not one behind a permission prompt, none at all. A web page
+added to a home screen has no route to it. No package, bridge, wrapper or
+native shell is used, and adding one would mean REIGN was no longer the thing
+it is deliberately built as.
+
+What iOS does allow is opening a Shortcut by URL. So REIGN hands a finished
+session to a Shortcut the owner built on their own phone, and the Shortcut —
+which is native, and does have HealthKit — writes it.
+
+### The export is a one-way door
+
+iOS opens the link and reports nothing back. No callback, no error, no result.
+**A Shortcut that does not exist fails exactly as silently as one that
+worked.**
+
+Every decision in the card follows from that one fact:
+
+- **The card does not disappear when the button is tapped.** There is no "done"
+  to move on from, and a card that dismissed itself would be claiming something
+  it cannot know.
+- **The same details sit underneath in words, always, never behind a toggle.**
+  The moment they are needed is the moment the button appeared to do nothing,
+  and a fallback behind "show details" is not there then.
+- **Whether it arrived is recorded only when the owner says so.** The app never
+  sets that flag itself. Tapping a button is not evidence, and a flag set
+  optimistically turns "I sent this" into "I pressed a button once".
+- **Finishing a session no longer leaves the screen.** It used to return to
+  Today, which was right when finishing was the last thing that happened to a
+  session. It is not any more.
+
+### The payload
+
+Four fields, comma separated, percent-encoded, in this order and no other:
+
+```
+workoutType,durationMinutes,startISO,endISO
+```
+
+The order is the contract with the Shortcut, which splits on commas and reads
+by position. **Nothing may be reordered or inserted in the middle without the
+Shortcut being changed to match.**
+
+No field can itself contain a comma — the type is one of two fixed words, the
+duration is an integer, and an ISO instant has none — which is what makes
+splitting on commas safe rather than lucky.
+
+Instants are **ISO 8601 with the offset they happened at**, e.g.
+`2026-09-02T17:52:00-07:00`. Not the UTC `Z` form. Both name the same instant
+and Health would accept either, but the offset says which evening this was
+where the owner was standing: a 6pm ride in California is 01:00 the next day in
+UTC, and a session that lands in Health on the wrong side of midnight is a
+session on the wrong day.
+
+Both the payload and the Shortcut's name are percent-encoded, and both need it.
+The payload carries colons, commas and the `+` of a positive offset, all of
+which mean something in a query string — an unencoded `+` arrives as a space
+and the Shortcut reads a broken timestamp. The name needs it because a Shortcut
+may be called "Log REIGN" and an unencoded space ends the URL early.
+
+### What is never sent
+
+No calories. No heart rate. The owner does not measure them and a plausible
+number in Health is worse than none, because nothing downstream can tell it was
+guessed.
+
+Nothing under a minute long, which is a mis-tap rather than a session.
+
+Nothing whose two instants are missing, which is every session recorded before
+the export existed. The card says so rather than inventing a start time.
+
+Nothing whose type the Shortcut has no word for. It speaks **strength** and
+**cycling**; a run sent as a ride would be the same lie as a guessed calorie
+count, so it is left for the fallback block.
+
+### Which type a session is
+
+Decided by **what was recorded**, not by what the program called the day:
+
+| Recorded | Sent as |
+| --- | --- |
+| A workout — sets of an exercise | `strength` |
+| A cardio session of type Cycling | `cycling` |
+| Any other cardio type | not sent; the card says why |
+
+A zone 2 or VO2 max day produces a ride, so it maps to cycling by being a ride.
+A bike day that also had carries produces a strength workout *and* a cycling
+session, which is exactly what the two of them were.
+
+### The two instants
+
+A workout already knows them: it is a row from the moment START WORKOUT is
+pressed, and it records the start and the finish as they happen. The duration
+is measured from those, never from what a program planned.
+
+A cardio session is typed in from the machine's display afterwards, so there is
+no start event to record. The end is stamped at the moment it is logged and the
+start is the entered duration before it. **This is an approximation and the
+screen shows it rather than hiding it** — log a ride an hour late and the times
+will be an hour late — which is why the fallback block shows exactly what will
+be sent before anything is sent.
+
+### On Progress
+
+Sessions that **have** reached Health are marked. Not the ones that have not.
+
+Every session in the history predates the export, so marking the unsent would
+put a line on months of rows the owner is never going to go back and enter — a
+mark on everything, saying nothing. Marking the sent starts silent and fills in
+as sessions are exported, which also makes the mark mean something: it is the
+only evidence the export ever worked.
+
+A word, never a colour or a dot.
+
+---
 # Reference Images
 
 Reference images will live in:
