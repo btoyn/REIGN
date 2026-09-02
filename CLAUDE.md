@@ -52,12 +52,22 @@ app. It was left aligned first, on the argument that everything in REIGN hangs
 off the same left edge; the owner looked at it on the phone and asked for
 centred. That rule still governs everything that is READ. Do not re-align it
 back on the strength of the original argument.
-The wordmark heads Today as a centred masthead, with the date centred under it
-as one block. The owner asked for that too, having seen it left aligned. Do not
-centre the mark and leave the date on the gutter: two things stacked to two
-different rules reads as a mistake. Everything below the masthead stays on the
-gutter.
-The wordmark is in use. assets/brand/reign-wordmark-transparent.png is derived
+THE LION heads Today as a centred masthead, with the date centred under it as
+one block, and the same lion fills the loading gate so opening the app is one
+mark rather than three. It was the wordmark until the owner said the lion was
+badly under-used, which was true: it was an app icon and a mark at the foot of
+a screen nobody opens between sets, while the screen seen every day carried
+four letters.
+assets/brand/reign-lion-transparent.png is a CROP of the supplied lockup, taken
+above the row where the REIGN lettering starts and trimmed to the lion's own
+edges. Zero pixels differ from the pixels they came from. That is the same
+operation the app icon was derived by, and it is not the same thing as
+recreating the lion, which is still forbidden.
+Do not centre the mark and leave the date on the gutter: two things stacked to
+two different rules reads as a mistake. Everything below the masthead stays on
+the gutter.
+The wordmark still heads the sign-in screen, which is where naming the app
+earns its place, and is in use. assets/brand/reign-wordmark-transparent.png is derived
 from the supplied PNG by removing its flat near-black background and its empty
 margin. No ink was changed. The supplied file is untouched beside it.
 The lion is the app icon, derived from assets/brand/reign-lion-approved.png by

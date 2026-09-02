@@ -263,8 +263,33 @@ having.
 
 ### The Today masthead
 
-Today keeps the wordmark and only the wordmark — never the lockup — and it is
-**centred, with the date centred under it as one block**.
+**The lion heads Today**, centred, with the date centred under it as one block.
+
+It was the wordmark, and the owner was right to change it: the lion was doing
+almost no work. It was an app icon, and a mark at the foot of the one screen
+nobody opens between sets, while the screen seen every single day carried four
+letters instead.
+
+The mark is a **crop of the supplied lockup** — taken above the row where the
+REIGN lettering begins, trimmed to the lion's own edges, zero pixels altered.
+That is the operation the app icon was derived by, and it is not recreating the
+lion, which stays forbidden. The lockup was the right source rather than the
+standalone lion file, which is only 240px wide and opaque: the lockup's own lion
+is 497px and was already cut out, so no background removal and no upscaling.
+
+Shown at 112px wide. That is more than four times what a 3x screen needs, and
+the mane is dense faceted work seen every day, so it gets the headroom.
+
+The same lion fills the **loading gate**, so opening the app shows one mark
+rather than three: the lockup on the launch screen, the lion while it loads,
+the lion on Today. Leaving the wordmark there would have meant the logo visibly
+swapping mid-open.
+
+The **sign-in screen keeps the wordmark**. That is a different job — naming the
+app to someone signing in — and it is seen rarely.
+
+Never the full lockup on Today. That belongs to the launch screen and the foot
+of You.
 
 The owner asked for that after seeing the left-aligned version on the phone.
 The mark and the date centre together: centring the mark and leaving the date on

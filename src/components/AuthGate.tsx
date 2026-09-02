@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 
-import { Wordmark } from "@/components/Wordmark";
+import { LionMark } from "@/components/LionMark";
 import { getSupabase } from "@/lib/supabase";
 
 /**
@@ -59,11 +59,17 @@ export function AuthGate({ children }: { children: ReactNode }) {
       Opening, not broken.
 
       This used to be an empty page, which on a slow connection is
-      indistinguishable from an app that failed. The wordmark is the one thing
-      that is true before anything has loaded, and it is centred rather than in
-      the corner so this reads as the app opening rather than a screen that
-      lost its content. No spinner: it would flash for a few milliseconds and
-      read as jitter.
+      indistinguishable from an app that failed. The mark is the one thing that
+      is true before anything has loaded, and it is centred rather than in the
+      corner so this reads as the app opening rather than a screen that lost
+      its content. No spinner: it would flash for a few milliseconds and read
+      as jitter.
+
+      The LION, not the wordmark, so opening the app is one mark rather than
+      three. The launch screen shows the lockup, this shows the lion, and Today
+      shows the lion: the same face throughout. It was the wordmark here until
+      Today's mark changed, and leaving it would have meant the logo visibly
+      swapping mid-open.
     */
     return (
       <main
@@ -71,7 +77,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         aria-busy="true"
         aria-label="Opening REIGN"
       >
-        <Wordmark />
+        <LionMark />
       </main>
     );
   }

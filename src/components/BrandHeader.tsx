@@ -2,10 +2,15 @@
 
 import { useSyncExternalStore } from "react";
 
-import { Wordmark } from "@/components/Wordmark";
+import { LionMark } from "@/components/LionMark";
 
 /**
- * The Today screen's top area: the REIGN wordmark over today's date.
+ * The Today screen's top area: the lion over today's date.
+ *
+ * It was the wordmark until the owner pointed out that the lion was barely
+ * used — an app icon and a mark at the foot of a screen nobody opens between
+ * sets, while the screen they see every day carried four letters. The lion
+ * heads it now.
  *
  * The date is read in the browser rather than on the server. These pages are
  * prerendered when the site deploys, so a server-rendered date would freeze at
@@ -50,7 +55,7 @@ export function BrandHeader() {
       one left edge is untouched.
     */
     <header className="flex flex-col items-center gap-4">
-      <Wordmark />
+      <LionMark />
       <p className="text-body text-muted h-5">{today}</p>
     </header>
   );
