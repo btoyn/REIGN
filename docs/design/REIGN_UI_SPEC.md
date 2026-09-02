@@ -261,9 +261,22 @@ optimiser offers at most twice the display width, which would hand a phone
 320px of a mark that has 536px available and soften it for no saving worth
 having.
 
-### Nowhere else
+### The Today masthead
 
-Today keeps the wordmark and only the wordmark. Program, Progress, Cardio and
+Today keeps the wordmark and only the wordmark — never the lockup — and it is
+**centred, with the date centred under it as one block**.
+
+The owner asked for that after seeing the left-aligned version on the phone.
+The mark and the date centre together: centring the mark and leaving the date on
+the gutter reads as a mistake rather than a choice, two things stacked to two
+different rules with nothing between them to explain why.
+
+Everything below the masthead stays on the gutter — the screen title, the split
+name, the counts, every list. A centred masthead over left-aligned content is
+its own convention, and the rule that content is read from one left edge is
+untouched.
+
+### Nowhere else Program, Progress, Cardio and
 every screen inside a workout carry no mark at all. This is checked rather than
 intended: the walk asserts the lockup appears exactly once in the whole app.
 

@@ -52,6 +52,11 @@ app. It was left aligned first, on the argument that everything in REIGN hangs
 off the same left edge; the owner looked at it on the phone and asked for
 centred. That rule still governs everything that is READ. Do not re-align it
 back on the strength of the original argument.
+The wordmark heads Today as a centred masthead, with the date centred under it
+as one block. The owner asked for that too, having seen it left aligned. Do not
+centre the mark and leave the date on the gutter: two things stacked to two
+different rules reads as a mistake. Everything below the masthead stays on the
+gutter.
 The wordmark is in use. assets/brand/reign-wordmark-transparent.png is derived
 from the supplied PNG by removing its flat near-black background and its empty
 margin. No ink was changed. The supplied file is untouched beside it.
