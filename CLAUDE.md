@@ -47,6 +47,11 @@ NEVER COLOUR ALONE
 No state is signalled by hue only. Weight, size or a marker carries it too.
 
 BRAND ASSETS
+The lion lockup is centred at the foot of the You tab and nowhere else in the
+app. It was left aligned first, on the argument that everything in REIGN hangs
+off the same left edge; the owner looked at it on the phone and asked for
+centred. That rule still governs everything that is READ. Do not re-align it
+back on the strength of the original argument.
 The wordmark is in use. assets/brand/reign-wordmark-transparent.png is derived
 from the supplied PNG by removing its flat near-black background and its empty
 margin. No ink was changed. The supplied file is untouched beside it.
@@ -116,7 +121,19 @@ you think you have found a way for web code to write to HealthKit, you are
 wrong; stop and say so.
 What exists is a shortcuts:// link that hands a finished session to a Shortcut
 the owner built. iOS reports nothing back, so nothing may claim the export
-worked. See "Apple Health, through a Shortcut" in the specification.
+worked.
+
+Three things about that Shortcut cost the owner an evening to find, so do not
+re-derive them:
+  * Log Workout REFUSES TO RUN if Distance or Calories is blank. Both need a
+    value. Distance 0 is true; Calories 0 is a knowing compromise, because an
+    estimate would inflate every energy total in Health.
+  * It CANNOT parse a date out of text, in any format. The start time is built
+    from Current Date by subtracting the duration, using date objects only.
+  * Its Date field is the START, and the duration runs forward from it.
+The working nine-action recipe, the permissions it needs, and the Peloton
+import settings are in "Apple Health, through a Shortcut" in the
+specification. Read that before changing anything about the payload.
 
 MILESTONES
 M0 Deploy to Vercel and get it on the iPhone home screen. No design, no features.
