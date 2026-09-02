@@ -290,6 +290,16 @@ export default function ProgramPage() {
                           (state.exercises.get(program.id) ?? []).length,
                         )}
                       </span>
+                      {/*
+                        What the plan is for. With one program the name said
+                        enough; with two, "5 days" and "7 days" is not a reason
+                        to pick either.
+                      */}
+                      {program.description ? (
+                        <span className="text-body text-muted">
+                          {program.description}
+                        </span>
+                      ) : null}
                     </span>
                     {/*
                       Which one is being followed, in a word. Not a colour and

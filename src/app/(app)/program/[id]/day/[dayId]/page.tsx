@@ -4,21 +4,34 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 
+import { CardioPlan } from "@/components/CardioPlan";
 import { ExercisePicker } from "@/components/ExercisePicker";
+import { StabilityBlock } from "@/components/StabilityBlock";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { Skeleton } from "@/components/Skeleton";
-import { choice, primaryAction, quiet, secondaryAction } from "@/components/controls";
+import {
+  choice,
+  primaryAction,
+  quiet,
+  secondaryAction,
+} from "@/components/controls";
 import { Exercise, fetchExercisesByIds } from "@/lib/exercises";
 import {
+  DayCardio,
   ProgramDay,
   ProgramExercise,
+  StabilityItem,
   addProgramExercise,
   assignDayToWeekday,
   deleteProgramDay,
   deleteProgramExercise,
+  describeKind,
   describePrescription,
+  fetchDayCardio,
   fetchProgramDays,
   fetchProgramExercises,
+  fetchStabilityItems,
+  stabilityFor,
 } from "@/lib/programs";
 import { WEEKDAYS, WEEK_IN_READING_ORDER } from "@/lib/splits";
 import { RANGE_PRESETS } from "@/lib/targets";
@@ -48,6 +61,10 @@ type State =
       day: ProgramDay;
       exercises: ProgramExercise[];
       library: Map<string, Exercise>;
+      /** The machine and the minutes, when the day is one. */
+      cardio: DayCardio | null;
+      /** The block that opens the day, already filtered to this day's kind. */
+      stability: StabilityItem[];
     };
 
 export default function ProgramDayPage({
@@ -79,12 +96,24 @@ export default function ProgramDayPage({
           if (active) setState({ status: "missing" });
           return;
         }
-        const byDay = await fetchProgramExercises([day.id]);
+        const [byDay, cardioByDay, stability] = await Promise.all([
+          fetchProgramExercises([day.id]),
+          fetchDayCardio([day.id]),
+          fetchStabilityItems(id),
+        ]);
         const exercises = byDay.get(day.id) ?? [];
         const library = await fetchExercisesByIds(
           exercises.map((e) => e.exercise_id),
         );
-        if (active) setState({ status: "ready", day, exercises, library });
+        if (active)
+          setState({
+            status: "ready",
+            day,
+            exercises,
+            library,
+            cardio: cardioByDay.get(day.id) ?? null,
+            stability: stabilityFor(stability, day.kind),
+          });
       })
       .catch((e: Error) => {
         if (!active) return;
@@ -171,7 +200,11 @@ export default function ProgramDayPage({
 
   if (state.status === "loading") {
     return (
-      <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading">
+      <div
+        className="flex flex-col gap-3"
+        aria-busy="true"
+        aria-label="Loading"
+      >
         <ScreenTitle>Program</ScreenTitle>
         <Skeleton className="mt-4 h-[42px] w-2/3" />
         <Skeleton className="mt-4 h-6 w-full" />
@@ -211,7 +244,7 @@ export default function ProgramDayPage({
     );
   }
 
-  const { day, exercises, library } = state;
+  const { day, exercises, library, cardio, stability } = state;
 
   /* Picking an exercise, then saying what the day asks of it. */
   if (pending) {
@@ -365,18 +398,60 @@ export default function ProgramDayPage({
           onClick={() => setPlacing(true)}
           className="text-body text-muted self-start underline underline-offset-4"
         >
+          {/*
+            What kind of training the day is, beside where it falls. A day
+            called Zone 2 says it in its name; a day called Strength A does
+            not say whether it is lifting or riding, and now it can be either.
+          */}
+          {describeKind(day.kind)} ·{" "}
           {day.day_of_week === null
-            ? "Not placed in the week"
-            : `Every ${WEEKDAYS[day.day_of_week]}`}
+            ? "not placed in the week"
+            : `every ${WEEKDAYS[day.day_of_week]}`}
         </button>
       </div>
 
+      {/* What governs the whole session, when the program says so. */}
+      {day.notes ? (
+        <p className="text-body text-muted mt-2">{day.notes}</p>
+      ) : null}
+
+      {/*
+        The bike ride, when there is one. A zone 2 day rendered as an empty
+        exercise list before this: a day that looked like it had nothing in it.
+      */}
+      {cardio ? (
+        <div className="mt-6">
+          <CardioPlan cardio={cardio} />
+        </div>
+      ) : null}
+
+      {/*
+        The block that opens the day, collapsed to one line. Seven items
+        expanded at the top of every day would push the training below the fold
+        and make six different days look alike.
+      */}
+      {stability.length > 0 ? (
+        <div className="mt-6">
+          <StabilityBlock items={stability} />
+        </div>
+      ) : null}
+
       <div className="mt-6 flex flex-col gap-2">
-        <p className="text-label text-muted uppercase">What it asks for</p>
+        <p className="text-label text-muted uppercase">
+          {cardio && exercises.length === 0 ? "Lifting" : "What it asks for"}
+        </p>
 
         {exercises.length === 0 ? (
+          /*
+            Two different empty lists. A strength day with no exercises is
+            unfinished; a bike day with none is complete, because the ride
+            above IS the day. Saying "nothing yet" on a zone 2 day would be the
+            screen calling a finished day a mistake.
+          */
           <p className="text-body text-muted">
-            Nothing yet. Add the exercises this day is made of.
+            {cardio
+              ? "Nothing to lift on this day."
+              : "Nothing yet. Add the exercises this day is made of."}
           </p>
         ) : (
           <ul>
@@ -395,8 +470,26 @@ export default function ProgramDayPage({
                         exercise.exercise_id}
                     </span>
                     <span className="text-body text-muted">
+                      {/*
+                        Sets, the amount, and how long to rest. The rest is
+                        part of the prescription rather than a separate line:
+                        90 seconds and 180 seconds are different programs, and
+                        they are read together or not at all.
+                      */}
                       {describePrescription(exercise)}
+                      {exercise.rest_seconds !== null
+                        ? ` · ${describeRest(exercise.rest_seconds)} rest`
+                        : ""}
                     </span>
+                    {/*
+                      A tempo, an accepted substitution, which set to slow
+                      down. Kept under the prescription because it modifies it.
+                    */}
+                    {exercise.notes ? (
+                      <span className="text-body text-muted">
+                        {exercise.notes}
+                      </span>
+                    ) : null}
                   </span>
                 </span>
                 <button
@@ -431,4 +524,18 @@ export default function ProgramDayPage({
       </button>
     </div>
   );
+}
+
+/**
+ * A prescribed rest, in the units it was written in.
+ *
+ * "90s" under two minutes and "3 min" at or above it, because 180s is read as a
+ * number to convert and three minutes is read as a length of time. The database
+ * holds seconds either way; this is assembled at render, like every other
+ * duration in REIGN.
+ */
+function describeRest(seconds: number): string {
+  if (seconds < 120) return `${seconds}s`;
+  const minutes = seconds / 60;
+  return `${Number.isInteger(minutes) ? minutes : minutes.toFixed(1)} min`;
 }

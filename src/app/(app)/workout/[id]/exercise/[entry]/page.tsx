@@ -28,6 +28,8 @@ import {
   nextSetNumber,
   updateSet,
 } from "@/lib/sets";
+import { fetchPrescribedRest } from "@/lib/programs";
+import { todayDayOfWeek } from "@/lib/splits";
 import { fetchWorkoutExercises } from "@/lib/workouts";
 
 /**
@@ -54,6 +56,12 @@ type Data =
       target: Target | null;
       /** Past workouts containing this exercise, most recent first. */
       sessions: Session[];
+      /**
+       * How long the followed program says to rest after a set of this, or
+       * null. Null for every exercise when no program is being followed, and
+       * for any lift the program does not prescribe a rest for.
+       */
+      prescribedRest: number | null;
     };
 
 export default function LogExercisePage({
@@ -99,10 +107,16 @@ export default function LogExercisePage({
           if (active) setData({ status: "missing" });
           return;
         }
-        const [library, target, sessions] = await Promise.all([
+        const [library, target, sessions, prescribedRest] = await Promise.all([
           fetchExercisesByIds([mine.exercise_id]),
           fetchTarget(mine.exercise_id),
           fetchExerciseSessions(mine.exercise_id, id),
+          /*
+            Never throws. A prescribed rest is an addition to this screen and
+            must not be able to stop a set being logged, so a failure here
+            reads as no prescription and the timer counts as it always did.
+          */
+          fetchPrescribedRest(mine.exercise_id, todayDayOfWeek()),
         ]);
         if (!active) return;
 
@@ -112,6 +126,7 @@ export default function LogExercisePage({
           sets,
           target,
           sessions,
+          prescribedRest,
         });
 
         // Within a workout, carry the last set forward so repeating it is one
@@ -301,7 +316,7 @@ export default function LogExercisePage({
     );
   }
 
-  const { exercise, sets, target, sessions } = data;
+  const { exercise, sets, target, sessions, prescribedRest } = data;
   const canLog = isLoggable(weight, reps);
 
   // No rep range yet means this exercise has never been logged. Ask, once.
@@ -499,7 +514,7 @@ export default function LogExercisePage({
         because there is nothing to time before that.
       */}
       {lastLoggedAt !== null && !showingMovement && !asking && !editingId ? (
-        <RestTimer since={lastLoggedAt} />
+        <RestTimer since={lastLoggedAt} target={prescribedRest} />
       ) : null}
 
       {showingMovement || asking ? null : (
