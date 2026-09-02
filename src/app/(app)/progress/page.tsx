@@ -4,6 +4,17 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { RecordRows } from "@/components/RecordRows";
+import { WeightLine } from "@/components/WeightLine";
+import {
+  Weighin,
+  canDraw,
+  change,
+  describeChange,
+  describeWeight,
+  fetchWeighins,
+  latest,
+  points,
+} from "@/lib/bodyweight";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { Skeleton } from "@/components/Skeleton";
 import { quiet, secondaryAction } from "@/components/controls";
@@ -16,6 +27,7 @@ import {
   describePrevious,
   describeWorkout,
   fetchWorkoutHistory,
+  shortDate,
 } from "@/lib/progress";
 import {
   PersonalRecord,
@@ -53,7 +65,13 @@ import { todayDate } from "@/lib/workouts";
 type State =
   | { status: "loading" }
   | { status: "error" }
-  | { status: "ready"; workouts: PastWorkout[]; records: PersonalRecord[] };
+  | {
+      status: "ready";
+      workouts: PastWorkout[];
+      records: PersonalRecord[];
+      /** Weigh-ins, newest first. Empty until there are any. */
+      weighins: Weighin[];
+    };
 
 export default function ProgressPage() {
   const [state, setState] = useState<State>({ status: "loading" });
@@ -62,12 +80,26 @@ export default function ProgressPage() {
   useEffect(() => {
     let active = true;
 
-    // Two reads, run together. Records need the sets and the history does not,
-    // so neither waits on the other's rows.
-    Promise.all([fetchWorkoutHistory(), fetchRecords()])
+    /*
+      Three reads, run together. Records need the sets, the history does not,
+      and bodyweight touches neither, so none waits on another's rows.
+
+      Bodyweight is caught rather than allowed to reject: a failed weigh-in
+      read must not take the history down with it. Progress exists to remember
+      what was lifted, and losing that because a scale reading would not load
+      is the wrong trade.
+    */
+    Promise.all([
+      fetchWorkoutHistory(),
+      fetchRecords(),
+      fetchWeighins().catch((e: Error) => {
+        console.error("could not read the weigh-ins", e);
+        return [] as Weighin[];
+      }),
+    ])
       .then(
-        ([workouts, records]) =>
-          active && setState({ status: "ready", workouts, records }),
+        ([workouts, records, weighins]) =>
+          active && setState({ status: "ready", workouts, records, weighins }),
       )
       .catch((e: Error) => {
         /*
@@ -132,6 +164,15 @@ export default function ProgressPage() {
             lifted in it.
           </p>
         </div>
+      ) : null}
+
+      {/*
+        Bodyweight, when there is any. Above consistency because it is a fact
+        about the owner rather than about their training, and absent entirely
+        until a reading exists — an empty chart is worse than no chart.
+      */}
+      {state.status === "ready" && state.weighins.length > 0 ? (
+        <Bodyweight weighins={state.weighins} />
       ) : null}
 
       {/*
@@ -259,6 +300,68 @@ function LoadingRows() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Bodyweight: the figure, which way it has gone, and the shape of it.
+ *
+ * The number leads and the movement is stated in words, so the line is never
+ * the only thing carrying the answer. That order matters: a chart nobody has to
+ * read to get the point is a chart that has earned its place instead of
+ * demanding attention.
+ *
+ * The line appears only from the second reading. One weigh-in is a number, not
+ * a trend, and drawing a single dot and calling it a line would be the chart
+ * claiming something it does not have.
+ */
+function Bodyweight({ weighins }: { weighins: Weighin[] }) {
+  const current = latest(weighins);
+  if (!current) return null;
+
+  const moved = describeChange(change(weighins));
+
+  return (
+    <div className="mt-4 flex flex-col gap-2">
+      <p className="text-label text-muted uppercase">Bodyweight</p>
+
+      <div className="flex flex-col gap-1">
+        <p className="text-display text-ink font-condensed tabular-nums">
+          {describeWeight(current.weight)}
+        </p>
+        {/*
+          The direction in words. Never an arrow and never a colour: down is
+          not automatically good and up is not automatically bad, and no state
+          in REIGN is signalled by hue alone.
+        */}
+        <p className="text-body text-muted">
+          {moved ?? `Recorded ${shortDate(current.date)}. One reading so far.`}
+        </p>
+      </div>
+
+      {canDraw(weighins) ? (
+        <div className="mt-2">
+          <WeightLine points={points(weighins)} />
+          {/*
+            The two ends of the line, so its width means something. No axis:
+            there is nothing here to measure a value off, and the readings
+            themselves are listed on the bodyweight screen.
+          */}
+          <div className="mt-1 flex items-baseline justify-between">
+            <span className="text-body text-muted">
+              {shortDate(weighins[weighins.length - 1].date)}
+            </span>
+            <span className="text-body text-muted">
+              {shortDate(current.date)}
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      <Link href="/bodyweight" className={`${quiet} mt-2 self-start`}>
+        Weigh in
+      </Link>
     </div>
   );
 }

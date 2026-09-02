@@ -1,3 +1,4 @@
+import { BodyweightRow } from "@/components/BodyweightRow";
 import { Lockup } from "@/components/Lockup";
 import { ProgramSwitcher } from "@/components/ProgramSwitcher";
 import { ShortcutName } from "@/components/ShortcutName";
@@ -50,6 +51,12 @@ export default function YouPage() {
           about them.
         </p>
       </div>
+
+      {/*
+        The one number REIGN did not hold. It sits above the program because it
+        is a fact about the owner rather than a choice about what they follow.
+      */}
+      <BodyweightRow />
 
       {/*
         Which program Today reads. It lives here rather than only inside each
