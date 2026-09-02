@@ -16,11 +16,22 @@ import { SignOutButton } from "@/components/SignOutButton";
  * of them is a logo between the owner and the answer. This screen asks nothing
  * of anyone, so the space below the last control is genuinely spare.
  *
- * Left aligned, on the app's own background, with no box around it. Everything
- * in REIGN starts at the same left edge, and centring the mark would make it
- * the one thing on the screen arranged to a different rule. It is not the
- * screen's action either: sign out is, so the lockup is set below it and left
- * quiet.
+ * Centred, on the app's own background, with no box around it.
+ *
+ * It was left aligned first, on the argument that everything in REIGN starts at
+ * the same left edge and the mark should not be the one thing arranged to a
+ * different rule. The owner looked at it on the actual phone and asked for it
+ * centred, which settles it: they can see the screen and the argument could
+ * only be made in the abstract.
+ *
+ * The rule it was defending still holds for everything that is READ — titles,
+ * copy, prescriptions, every list — and none of that moves. This is a mark at
+ * the foot of a screen whose work is done, not a line of text, and a signature
+ * centred under finished content is its own convention rather than a violation
+ * of that one.
+ *
+ * It is not the screen's action either: sign out is, so the lockup is below it
+ * and left quiet.
  *
  * Set against the bottom of the screen rather than trailing the last control.
  * There is almost nothing on this screen yet, so a mark that follows the copy
@@ -56,7 +67,7 @@ export default function YouPage() {
       <ShortcutName />
 
       <SignOutButton />
-      <div className="mt-auto pt-16">
+      <div className="mt-auto flex justify-center pt-16">
         <Lockup />
       </div>
     </div>

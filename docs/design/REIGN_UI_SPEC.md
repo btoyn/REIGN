@@ -1472,6 +1472,99 @@ only evidence the export ever worked.
 
 A word, never a colour or a dot.
 
+### What the Shortcut actually requires
+
+Established on the owner's own phone, iOS 26.5.2, over several hours. Every
+line below cost something to find, so it is written down rather than left to be
+rediscovered.
+
+**Log Workout is the only action that can create a workout in Health.** There is
+no alternative. If it refuses to run, no change to REIGN's data or format makes
+it run, and the honest fallback is the copy-and-paste block.
+
+**It fails if Distance is blank. It fails if Calories is blank.** Both must
+carry a value, even for a strength workout where distance is meaningless. The
+failure is iOS's generic "there was a problem running the shortcut", which names
+nothing and points nowhere. This one fact accounted for the entire evening.
+
+- **Distance `0` is true.** You cover no distance doing a bench press.
+- **Calories `0` is not true, and is still the right answer.** An estimate
+  asserts something specific and false AND inflates every energy total in Health
+  afterwards. A zero adds nothing to any total and cannot distort a single
+  figure. It is the smallest untruth that makes the mechanism work, and the only
+  one that corrupts nothing else. The imported workout shows 0 cal in Health and
+  in Peloton, and that is a visible consequence the owner accepted knowingly.
+
+**It will not parse a date out of text. At all.** Not ISO 8601 with an offset,
+not the space-separated local form that replaced it. Proved with a Quick Look
+placed before the action: REIGN's timestamp arrived intact and correctly split,
+and Shortcuts still handed it over as a run of characters. The action needs a
+Shortcuts *date object*, and the only way to get one is to build it from
+`Current Date` using date arithmetic.
+
+**Its Date field is the START, and Duration runs forward from it.** Measured:
+sent at 10:55:56, logged as 10:55:00 → 10:57:00 with a 2-minute duration. So
+feeding it `Current Date` directly records the session as beginning when the
+button was pressed and ending in the future.
+
+**Writing needs three permissions, not one.** Under Settings → Health → Data
+Access & Devices → Shortcuts → Allow Shortcuts to Write Data: **Workouts**,
+**Active Energy** and **Walking + Running Distance**. The action touches the
+latter two even when their fields hold zero.
+
+### The shortcut that works
+
+Named `LogREIGN`, or whatever the You tab says. Nine actions:
+
+```
+Receive … from Share Sheet
+1  Split Shortcut Input by Custom ,
+2  Get Item at Index 3 from Split Text
+3  Set variable Start to Item from List
+4  Get Item at Index 4 from Split Text
+5  Set variable End to Item from List
+6  Get Item at Index 2 from Split Text
+7  Set variable Minutes to Item from List
+8  Subtract Minutes minutes from Current Date
+9  Log Traditional Strength Training workout
+      Date:      Adjusted Date
+      Duration:  Minutes minutes
+      Calories:  0
+      Distance:  0
+```
+
+Row 8 is the whole trick: it derives the start by counting backwards from now,
+using date objects only, so nothing is ever parsed from text. Because REIGN
+sends immediately after a session is finished, "now" is the real end time and
+the workout lands where it belongs.
+
+**Which means only field 2 of the payload is consumed.** The two timestamps are
+sent, and the Shortcut ignores them — it cannot read them. They still earn their
+place: the fallback block shows the true start and finish in words, which is
+what the owner reads off when the automatic route is wrong or unavailable, and a
+future iOS that parses text dates would let row 8 be replaced by field 3
+directly.
+
+**The known inaccuracy.** Send promptly and the times are right to the second.
+Finish a workout and send it three hours later and Health will be three hours
+late, because the shortcut trusts "now" as the end. The duration is always
+exactly right, and the fallback block always shows the truth.
+
+### Getting it into Peloton
+
+Health is the destination, but Peloton is the point. Peloton reads *from* Health
+as well as writing to it, and since May 2026 imported workouts count toward
+Peloton streaks and goals rather than only appearing in history.
+
+Peloton → **Profile** → **More** → **Add-ons** → **Apple Health**. Grant
+Peloton **read** access to Workouts, turn on auto-import, and choose the
+activity types.
+
+**Import Traditional Strength Training only.** Auto-importing Cycling risks
+Peloton pulling back rides it wrote to Health itself, or pulling in a
+REIGN-logged ride that duplicates a Peloton class. Types get added one at a
+time, deliberately.
+
 ---
 # Reference Images
 
