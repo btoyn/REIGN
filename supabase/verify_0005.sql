@@ -90,13 +90,21 @@ end $$;
 -- Part three: the backfill actually landed, and deleting an exercise takes its
 -- pins with it.
 -- ---------------------------------------------------------------------------
+-- The library's own rows only. 0006 adds three movements the source does not
+-- have, all of them tagged, so counting the whole table makes this read 792
+-- the moment 0006 has also run — which it will have, because the migrations
+-- are run in order. Excluding them keeps the check about the backfill, which
+-- is the thing it is meant to be about.
 select set_config('reign.tagged',
   (select count(*)::text from exercises
-    where mechanic in ('compound', 'isolation')), false);
+    where mechanic in ('compound', 'isolation')
+      and id not like 'reign\_%'), false);
 
 select set_config('reign.untagged',
   (select count(*)::text from exercises
-    where mechanic is null and id not like 'reign-verify-%'), false);
+    where mechanic is null
+      and id not like 'reign-verify-%'
+      and id not like 'reign\_%'), false);
 
 -- A known compound lift and a known isolation one, so this is not just counting.
 select set_config('reign.bench_is',
