@@ -77,26 +77,41 @@ export function isTooShort(session: HealthSession): boolean {
 }
 
 /**
- * An instant as ISO 8601 with the offset it happened at, e.g.
- * "2026-09-02T17:52:00-07:00".
+ * An instant as "2026-09-02 09:52:01" — the local wall clock, and nothing else.
  *
- * Not toISOString(), which is also ISO 8601 but always in UTC with a Z. Both
- * name the same instant, and Health would accept either, but the offset says
- * which evening this was where the owner was standing. A ride at 6pm in
- * California reads as 01:00 the following day in UTC, and a session that lands
- * in Health on the wrong side of midnight is a session on the wrong day.
+ * THIS USED TO BE FULL ISO 8601 WITH THE OFFSET, e.g.
+ * "2026-09-02T09:52:01-06:00", and it was changed because the Shortcut could
+ * not read it. Proved on the owner's phone rather than guessed: the string
+ * arrived intact, split correctly, and Shortcuts still handed it to Log Workout
+ * as a run of characters instead of a moment in time, so the action failed. A
+ * format the other end cannot parse is not the more correct one. It is broken.
+ *
+ * Two things go, and it is worth being straight about what they cost.
+ *
+ * THE T SEPARATOR. iOS parses "2026-09-02 09:52:01" and does not reliably parse
+ * the same thing with a T wedged in the middle. Nothing is lost: the T is
+ * punctuation.
+ *
+ * THE OFFSET, which is a real loss on paper and none in practice. Without it
+ * the Shortcut reads the time in the phone's own zone. That is the right answer
+ * here because the two ends are the same device seconds apart: REIGN writes the
+ * string from the browser's clock and the Shortcut reads it on the same phone,
+ * so "09:52" means the same moment to both. The offset was insurance against a
+ * reader in a different zone, and there is no such reader.
+ *
+ * What it would cost if that ever stopped being true: a session logged while
+ * the phone had moved zones between writing and reading would land at the wrong
+ * hour. That cannot happen through REIGN's own screens, which send immediately.
+ *
+ * Seconds are kept. They make the two instants distinct even for a very short
+ * session, and Health stores them.
  */
-export function isoWithOffset(when: Date): string {
-  const pad = (n: number) => String(Math.floor(Math.abs(n))).padStart(2, "0");
-
-  // getTimezoneOffset is minutes to ADD to local to reach UTC, so it runs
-  // backwards from the sign an ISO offset uses: UTC-7 reports +420.
-  const offset = -when.getTimezoneOffset();
-  const sign = offset < 0 ? "-" : "+";
+export function localDateTime(when: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
 
   const date = `${when.getFullYear()}-${pad(when.getMonth() + 1)}-${pad(when.getDate())}`;
   const time = `${pad(when.getHours())}:${pad(when.getMinutes())}:${pad(when.getSeconds())}`;
-  return `${date}T${time}${sign}${pad(offset / 60)}:${pad(offset % 60)}`;
+  return `${date} ${time}`;
 }
 
 /**
@@ -104,22 +119,22 @@ export function isoWithOffset(when: Date): string {
  *
  * Four fields, comma separated, in this order and no other:
  *
- *     workoutType,durationMinutes,startISO,endISO
+ *     workoutType,durationMinutes,start,end
  *
  * The order is the contract with the Shortcut, which splits on commas and
  * reads by position. Nothing here may be reordered, and nothing may be added in
  * the middle, without the Shortcut being changed to match.
  *
  * No field can itself contain a comma: the type is one of two fixed words, the
- * duration is an integer, and an ISO instant has none. That is what makes
- * splitting on commas safe rather than lucky.
+ * duration is an integer, and a timestamp is digits, dashes, colons and one
+ * space. That is what makes splitting on commas safe rather than lucky.
  */
 export function payload(session: HealthSession): string {
   return [
     session.type,
     String(durationMinutes(session)),
-    isoWithOffset(session.start),
-    isoWithOffset(session.end),
+    localDateTime(session.start),
+    localDateTime(session.end),
   ].join(",");
 }
 
