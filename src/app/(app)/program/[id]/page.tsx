@@ -9,15 +9,18 @@ import { ScreenTitle } from "@/components/ScreenTitle";
 import { Skeleton } from "@/components/Skeleton";
 import { primaryAction, quiet, secondaryAction } from "@/components/controls";
 import {
+  DayKind,
   Program,
   ProgramDay,
   ProgramExercise,
   addProgramDay,
   deleteProgram,
+  describeKind,
   fetchProgram,
   fetchProgramDays,
   fetchProgramExercises,
   followProgram,
+  isCardioDay,
 } from "@/lib/programs";
 import { WEEKDAYS } from "@/lib/splits";
 
@@ -64,8 +67,7 @@ export default function ProgramPage({ params }: PageProps<"/program/[id]">) {
         }
         const days = await fetchProgramDays(program.id);
         const exercises = await fetchProgramExercises(days.map((d) => d.id));
-        if (active)
-          setState({ status: "ready", program, days, exercises });
+        if (active) setState({ status: "ready", program, days, exercises });
       })
       .catch((e: Error) => {
         if (!active) return;
@@ -135,7 +137,11 @@ export default function ProgramPage({ params }: PageProps<"/program/[id]">) {
 
   if (state.status === "loading") {
     return (
-      <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading">
+      <div
+        className="flex flex-col gap-3"
+        aria-busy="true"
+        aria-label="Loading"
+      >
         <ScreenTitle>Program</ScreenTitle>
         <Skeleton className="mt-4 h-[42px] w-2/3" />
         <Skeleton className="mt-4 h-6 w-full" />
@@ -257,6 +263,11 @@ export default function ProgramPage({ params }: PageProps<"/program/[id]">) {
         </p>
       </div>
 
+      {/* What the plan is for, when it says. */}
+      {program.description ? (
+        <p className="text-body text-ink mt-2">{program.description}</p>
+      ) : null}
+
       <button
         type="button"
         disabled={busy !== null}
@@ -269,6 +280,25 @@ export default function ProgramPage({ params }: PageProps<"/program/[id]">) {
             ? "Stop following"
             : "Follow this program"}
       </button>
+
+      {/*
+        Standing notes for the whole plan: what is deliberately left out, what
+        to test occasionally. These are the things that get forgotten and then
+        quietly undone six weeks later, which is the argument for putting them
+        where the program is read rather than in a note somewhere else.
+      */}
+      {program.notes.length > 0 ? (
+        <div className="mt-6 flex flex-col gap-2">
+          <p className="text-label text-muted uppercase">Standing notes</p>
+          <ul className="flex flex-col gap-2">
+            {program.notes.map((note) => (
+              <li key={note} className="text-body text-ink">
+                {note}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="mt-6 flex flex-col gap-2">
         <p className="text-label text-muted uppercase">Days</p>
@@ -293,10 +323,14 @@ export default function ProgramPage({ params }: PageProps<"/program/[id]">) {
                   >
                     <span className="flex flex-col gap-1">
                       <span className="text-lead text-ink">{day.name}</span>
+                      {/*
+                        What the day is and what is in it. A count of exercises
+                        alone described every day identically once days stopped
+                        all being lifting: a bike day and an unfinished
+                        strength day both read "nothing added yet".
+                      */}
                       <span className="text-body text-muted">
-                        {mine.length === 0
-                          ? "Nothing added yet"
-                          : `${mine.length} ${mine.length === 1 ? "exercise" : "exercises"}`}
+                        {describeDayContents(day, mine.length)}
                       </span>
                     </span>
                     {/*
@@ -334,4 +368,28 @@ export default function ProgramPage({ params }: PageProps<"/program/[id]">) {
       </button>
     </div>
   );
+}
+
+/**
+ * A day's one line in the list.
+ *
+ * "Strength · 6 exercises". "Zone 2". "Rest".
+ *
+ * A count on its own stopped describing a day once days stopped all being
+ * lifting: a bike day and an unfinished strength day both read "nothing added
+ * yet", which called one of them a mistake.
+ */
+function describeDayContents(
+  day: { kind: DayKind },
+  exercises: number,
+): string {
+  const kind = describeKind(day.kind);
+  if (day.kind === "rest") return kind;
+
+  if (exercises === 0) {
+    // A cardio day with no lifting is finished, not empty. The ride is on the
+    // day's own screen; here the kind is the whole answer.
+    return isCardioDay(day.kind) ? kind : `${kind} · nothing added yet`;
+  }
+  return `${kind} · ${exercises} ${exercises === 1 ? "exercise" : "exercises"}`;
 }

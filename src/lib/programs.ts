@@ -11,26 +11,51 @@ import { getSupabase } from "@/lib/supabase";
  * reads the weekday split exactly as it always did, and nothing here is in the
  * way.
  *
- * No program is shipped with REIGN and none ever will be. This reads and writes
- * the owner's own, entered through the picker like anything else, so the stored
- * reference is an ordinary exercises.id.
+ * No program is shipped inside the app, and none ever will be. What the owner
+ * follows lives in their database: entered through the picker, or loaded once
+ * by a script they run themselves, which is how both of the programs they
+ * follow got there. The stored reference is an ordinary exercises.id either
+ * way.
+ *
+ * A program used to be a name and a list of lifting days, because the plan it
+ * was built for was all barbells. It can now also say what KIND each day is —
+ * strength, zone 2, VO2 max, rest — carry a cardio prescription instead of
+ * exercises, prescribe in seconds rather than reps, prescribe rest, and open
+ * every day with a stability block that is not sets at all.
  */
+
+/**
+ * What kind of training a day is.
+ *
+ * Everything REIGN could describe before was strength, because the plan it was
+ * built for was all barbells. A plan built around several kinds of training
+ * needs to say which kind a day is, or Today has to guess from whether the day
+ * happens to have exercises in it.
+ */
+export type DayKind = "strength" | "zone2" | "vo2max" | "rest";
 
 export type Program = {
   id: string;
   name: string;
   is_active: boolean;
+  /** A sentence about what the plan is for, or null. */
+  description: string | null;
+  /** Standing notes for the whole plan. Empty rather than null when there are none. */
+  notes: string[];
 };
 
 export type ProgramDay = {
   id: string;
   program_id: string;
   name: string;
+  kind: DayKind;
   target_muscles: string[];
   /** The weekday it is assigned to, or null while it is unplaced. */
   day_of_week: number | null;
   /** Storage order for the list. Never shown as a number. */
   position: number;
+  /** What governs the whole session, or null. */
+  notes: string | null;
 };
 
 export type ProgramExercise = {
@@ -39,23 +64,184 @@ export type ProgramExercise = {
   exercise_id: string;
   position: number;
   set_count: number;
-  target_rep_min: number;
-  target_rep_max: number;
+  /** Null when the target is failure rather than a number. */
+  target_rep_min: number | null;
+  target_rep_max: number | null;
+  /** Whether those numbers are reps or seconds. A carry is prescribed in time. */
+  unit: "reps" | "seconds";
+  /** Whether the prescription is per side, which is twice the work. */
+  per_side: boolean;
+  /** For the prescriptions whose target is failure. */
+  to_failure: boolean;
+  /** How long to rest after each set, or null when it is not prescribed. */
+  rest_seconds: number | null;
+  /** A tempo, an accepted substitution, which set to slow down. */
+  notes: string | null;
 };
 
-const PROGRAM_COLUMNS = "id, name, is_active";
-const DAY_COLUMNS =
-  "id, program_id, name, target_muscles, day_of_week, position";
-const EXERCISE_COLUMNS =
-  "id, program_day_id, exercise_id, position, set_count, target_rep_min, target_rep_max";
+/**
+ * A day that is a machine and a length of time.
+ *
+ * One row per cardio day rather than nine columns on every day that are empty
+ * for all the lifting ones. A day may have this AND exercises: forty-five
+ * minutes on the bike followed by three sets of carries is one day, not two.
+ */
+export type DayCardio = {
+  program_day_id: string;
+  machine: string;
+  /** The steady portion, as the range it was written as. */
+  steady_min_low: number | null;
+  steady_min_high: number | null;
+  /** The interval structure, all five together or none of them. */
+  warmup_min: number | null;
+  work_min: number | null;
+  easy_min: number | null;
+  rounds: number | null;
+  cooldown_min: number | null;
+};
 
-/** "3 × 8-10", assembled when rendering. The database holds three numbers. */
+/**
+ * One line of the block that opens every day.
+ *
+ * Held against the program rather than copied onto each of its days, because it
+ * is the same block every day and seven copies would mean seven edits.
+ *
+ * The prescription is words rather than numbers, which is the one place in
+ * REIGN that happens. It is not a display string assembled from stored numbers
+ * — there are no numbers underneath it. "Two minutes of breathing" is not sets
+ * and reps and forcing it into them would invent precision that is not there.
+ */
+export type StabilityItem = {
+  id: string;
+  program_id: string;
+  position: number;
+  name: string;
+  prescription: string;
+  /** Band work belongs to a lifting day, not to a bike ride. */
+  strength_only: boolean;
+};
+
+const PROGRAM_COLUMNS = "id, name, is_active, description, notes";
+const DAY_COLUMNS =
+  "id, program_id, name, kind, target_muscles, day_of_week, position, notes";
+// One string literal each, never a concatenation. supabase-js reads these at
+// the type level to work out the shape of what comes back, and it can only do
+// that with a literal: joining two halves with + turns the result into a plain
+// string and every row arrives as an error type instead of a row.
+// prettier-ignore
+const EXERCISE_COLUMNS = "id, program_day_id, exercise_id, position, set_count, target_rep_min, target_rep_max, unit, per_side, to_failure, rest_seconds, notes";
+// prettier-ignore
+const CARDIO_COLUMNS = "program_day_id, machine, steady_min_low, steady_min_high, warmup_min, work_min, easy_min, rounds, cooldown_min";
+const STABILITY_COLUMNS =
+  "id, program_id, position, name, prescription, strength_only";
+
+/**
+ * "3 × 8–10", "3 × 45s per side", "2 × to failure".
+ *
+ * Assembled when rendering. The database holds numbers and three facts about
+ * them: whether they are reps or seconds, whether they are per side, and
+ * whether there is a target at all.
+ */
 export function describePrescription(exercise: ProgramExercise): string {
-  const reps =
-    exercise.target_rep_min === exercise.target_rep_max
-      ? `${exercise.target_rep_min}`
-      : `${exercise.target_rep_min}–${exercise.target_rep_max}`;
-  return `${exercise.set_count} × ${reps}`;
+  const amount = prescribedAmount(exercise);
+  const side = exercise.per_side ? " per side" : "";
+  return `${exercise.set_count} × ${amount}${side}`;
+}
+
+/** The middle of a prescription: the number and what it counts. */
+function prescribedAmount(exercise: ProgramExercise): string {
+  // No target, because the target is failure. Said in words rather than as a
+  // number, since there is no number.
+  if (exercise.to_failure) return "to failure";
+
+  const { target_rep_min: min, target_rep_max: max } = exercise;
+  if (min === null || max === null) return "as prescribed";
+
+  const range = min === max ? `${min}` : `${min}–${max}`;
+  // Seconds carry their unit; reps are the default and do not need saying,
+  // which is how every rep range in REIGN has always read.
+  return exercise.unit === "seconds" ? `${range}s` : range;
+}
+
+/**
+ * A cardio day, in one line.
+ *
+ * "45–55 min steady" or "10 min easy · 4 × 4 min hard / 4 min easy · 10 min
+ * easy". Both are assembled from stored numbers, never stored as text.
+ *
+ * A range stays a range. "45 to 55 minutes" means the session can be either,
+ * and showing its midpoint would be a number nobody chose.
+ */
+export function describeCardioPlan(cardio: DayCardio): string {
+  const parts: string[] = [];
+
+  if (cardio.steady_min_low !== null) {
+    const span =
+      cardio.steady_min_high === null ||
+      cardio.steady_min_high === cardio.steady_min_low
+        ? `${cardio.steady_min_low}`
+        : `${cardio.steady_min_low}–${cardio.steady_min_high}`;
+    parts.push(`${span} min steady`);
+  }
+
+  if (cardio.warmup_min !== null) {
+    parts.push(`${cardio.warmup_min} min easy`);
+    parts.push(
+      `${cardio.rounds} × ${cardio.work_min} min hard / ${cardio.easy_min} min easy`,
+    );
+    parts.push(`${cardio.cooldown_min} min easy`);
+  }
+
+  return parts.join(" · ");
+}
+
+/**
+ * How long a cardio day takes, end to end.
+ *
+ * The interval days need this because their length is the sum of their parts
+ * and nobody should have to add it up while deciding whether they have time.
+ * A range gives its longest, since that is the one that has to fit.
+ */
+export function cardioMinutes(cardio: DayCardio): number | null {
+  if (cardio.warmup_min !== null) {
+    return (
+      cardio.warmup_min +
+      (cardio.rounds ?? 0) * ((cardio.work_min ?? 0) + (cardio.easy_min ?? 0)) +
+      (cardio.cooldown_min ?? 0)
+    );
+  }
+  return cardio.steady_min_high ?? cardio.steady_min_low;
+}
+
+/** Whether a day is done on a machine rather than under a bar. */
+export function isCardioDay(kind: DayKind): boolean {
+  return kind === "zone2" || kind === "vo2max";
+}
+
+/**
+ * What a day is called when it is not called by its name.
+ *
+ * Used where the kind matters more than the label, and never as the day's own
+ * heading: the day is called Zone 2 because the owner called it that.
+ */
+export function describeKind(kind: DayKind): string {
+  if (kind === "zone2") return "Zone 2";
+  if (kind === "vo2max") return "VO2 max";
+  if (kind === "rest") return "Rest";
+  return "Strength";
+}
+
+/**
+ * The stability block as it applies to one kind of day.
+ *
+ * The band work at the end prepares a shoulder for pressing and pulling, so it
+ * appears on lifting days and not on a bike ride. Everything else is every day.
+ */
+export function stabilityFor(
+  items: StabilityItem[],
+  kind: DayKind,
+): StabilityItem[] {
+  return items.filter((item) => !item.strength_only || kind === "strength");
 }
 
 /** How many days and exercises a program holds, for its one line. */
@@ -120,6 +306,42 @@ export async function fetchProgramExercises(
     byDay.set(row.program_day_id, list);
   }
   return byDay;
+}
+
+/**
+ * The cardio prescriptions for a set of days, keyed by day.
+ *
+ * Read in one request beside the exercises, because a day may hold both and two
+ * round trips to draw one screen is two round trips paid standing in a gym.
+ */
+export async function fetchDayCardio(
+  dayIds: string[],
+): Promise<Map<string, DayCardio>> {
+  const byDay = new Map<string, DayCardio>();
+  if (dayIds.length === 0) return byDay;
+
+  const { data, error } = await getSupabase()
+    .from("program_day_cardio")
+    .select(CARDIO_COLUMNS)
+    .in("program_day_id", dayIds);
+
+  if (error) throw new Error(error.message);
+  for (const row of data ?? []) byDay.set(row.program_day_id, row);
+  return byDay;
+}
+
+/** The block that opens every day of a program, in order. */
+export async function fetchStabilityItems(
+  programId: string,
+): Promise<StabilityItem[]> {
+  const { data, error } = await getSupabase()
+    .from("program_stability_items")
+    .select(STABILITY_COLUMNS)
+    .eq("program_id", programId)
+    .order("position");
+
+  if (error) throw new Error(error.message);
+  return data ?? [];
 }
 
 export async function createProgram(name: string): Promise<Program> {
@@ -258,6 +480,12 @@ export async function fetchActiveProgram(): Promise<Program | null> {
 export type TodaysProgram = {
   program: Program;
   day: ProgramDay;
+  /** The machine and the minutes, when today is a cardio day. */
+  cardio: DayCardio | null;
+  /** The block that opens the day, already filtered to this day's kind. */
+  stability: StabilityItem[];
+  /** How many exercises the day prescribes, which decides Today's one action. */
+  exerciseCount: number;
 };
 
 /**
@@ -287,9 +515,77 @@ export async function fetchTodaysProgram(
       .maybeSingle();
 
     if (error) throw new Error(error.message);
-    return data ? { program, day: data } : null;
+    if (!data) return null;
+
+    /*
+      Everything Today needs about the day, read together. Which action Today
+      offers depends on whether the day has exercises — a bike day with none
+      cannot be started as a workout — so the count is part of the answer
+      rather than something the screen goes back for.
+    */
+    const [cardioByDay, stability, exercisesByDay] = await Promise.all([
+      fetchDayCardio([data.id]),
+      fetchStabilityItems(program.id),
+      fetchProgramExercises([data.id]),
+    ]);
+
+    return {
+      program,
+      day: data,
+      cardio: cardioByDay.get(data.id) ?? null,
+      stability: stabilityFor(stability, data.kind),
+      exerciseCount: (exercisesByDay.get(data.id) ?? []).length,
+    };
   } catch (e) {
     console.error("could not read the active program", e);
+    return null;
+  }
+}
+
+/**
+ * How long the active program says to rest after a set of this exercise.
+ *
+ * Read by the exercise screen so the rest timer can say what it is counting
+ * towards. Null covers every reason there is no answer — no program, the
+ * exercise is not in it, the read failed — because the timer behaves the same
+ * way in all of them: it counts, and says nothing about a target it does not
+ * have.
+ *
+ * Never throws, for the same reason fetchTodaysProgram does not. A rest target
+ * is an addition to the logging screen and must not be able to break it.
+ *
+ * An exercise can appear on more than one day with different rests, so the day
+ * matching today's weekday wins. Failing that, the first is used: two rests for
+ * the same lift is a near-tie, and guessing wrong costs the owner nothing but a
+ * number they can ignore.
+ */
+export async function fetchPrescribedRest(
+  exerciseId: string,
+  dayOfWeek: number,
+): Promise<number | null> {
+  try {
+    const program = await fetchActiveProgram();
+    if (!program) return null;
+
+    const days = await fetchProgramDays(program.id);
+    if (days.length === 0) return null;
+
+    const byDay = await fetchProgramExercises(days.map((d) => d.id));
+    const today = days.find((d) => d.day_of_week === dayOfWeek);
+
+    const search = today
+      ? [today, ...days.filter((d) => d.id !== today.id)]
+      : days;
+
+    for (const day of search) {
+      const match = (byDay.get(day.id) ?? []).find(
+        (p) => p.exercise_id === exerciseId,
+      );
+      if (match?.rest_seconds != null) return match.rest_seconds;
+    }
+    return null;
+  } catch (e) {
+    console.error("could not read the prescribed rest", e);
     return null;
   }
 }
@@ -345,6 +641,30 @@ export async function applyProgramDay(
  * asks for a range when it finds none, which is exactly what it did before
  * programs existed.
  */
+/**
+ * Whether a prescription can become a rep range, which not all of them can.
+ *
+ * exercise_targets holds a REP range, and double progression reads it as one.
+ * Two of the shapes a program can now prescribe are not rep ranges and would
+ * be a lie stored in that column:
+ *
+ *   * A carry is prescribed in seconds. Copying "45" into target_rep_min would
+ *     mean the app suggesting 45 reps of a suitcase carry for ever after.
+ *   * A dead hang has no target at all, and the column cannot hold that.
+ *
+ * Both are left without a row, which is a state the app already handles: the
+ * exercise screen asks for a range the first time it finds none. That is the
+ * right question for a carry, and the answer the owner gives is a real one.
+ */
+function seedable(prescribed: ProgramExercise): boolean {
+  return (
+    prescribed.unit === "reps" &&
+    !prescribed.to_failure &&
+    prescribed.target_rep_min !== null &&
+    prescribed.target_rep_max !== null
+  );
+}
+
 async function seedTargets(prescribed: ProgramExercise[]): Promise<void> {
   try {
     const supabase = getSupabase();
@@ -357,7 +677,9 @@ async function seedTargets(prescribed: ProgramExercise[]): Promise<void> {
     if (error) throw new Error(error.message);
 
     const known = new Set((existing ?? []).map((row) => row.exercise_id));
-    const missing = prescribed.filter((p) => !known.has(p.exercise_id));
+    const missing = prescribed.filter(
+      (p) => !known.has(p.exercise_id) && seedable(p),
+    );
     if (missing.length === 0) return;
 
     // One row per exercise even if two days prescribe it, since the table holds

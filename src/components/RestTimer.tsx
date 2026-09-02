@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 
-import { elapsedSeconds, formatRest, isLongRest } from "@/lib/rest";
+import {
+  describeTarget,
+  elapsedSeconds,
+  formatRest,
+  isLongRest,
+  restIsUp,
+} from "@/lib/rest";
 import { holdScreenAwake } from "@/lib/wakeLock";
 
 /**
@@ -14,8 +20,23 @@ import { holdScreenAwake } from "@/lib/wakeLock";
  *
  * The screen is held awake while it runs, so the next set does not begin with
  * unlocking a phone.
+ *
+ * When the followed program prescribes a rest for this exercise, the target is
+ * shown beside the count and the timer says "ready" once it is served. It still
+ * counts up past it: ninety seconds is a floor rather than a deadline, and a
+ * countdown that hits zero has nothing left to say about the rest actually
+ * being taken.
+ *
+ * With no program, or no rest prescribed for this lift, target is null and the
+ * timer reads exactly as it always did.
  */
-export function RestTimer({ since }: { since: number }) {
+export function RestTimer({
+  since,
+  target = null,
+}: {
+  since: number;
+  target?: number | null;
+}) {
   const [seconds, setSeconds] = useState(() =>
     elapsedSeconds(since, Date.now()),
   );
@@ -39,6 +60,8 @@ export function RestTimer({ since }: { since: number }) {
   }, [since]);
 
   const long = isLongRest(seconds);
+  const targetLine = describeTarget(seconds, target);
+  const ready = restIsUp(seconds, target);
 
   return (
     <p className="flex items-baseline gap-2">
@@ -50,7 +73,33 @@ export function RestTimer({ since }: { since: number }) {
       <span className="text-lead text-ink tabular-nums">
         {formatRest(seconds)}
       </span>
-      {long ? <span className="text-body text-muted">· a long one</span> : null}
+
+      {/*
+        The prescribed rest, when the program has one. "ready" is carried by
+        the word and by its weight, never by the gold alone: the rule is that
+        no state is signalled by hue by itself, and this is read at a glance
+        between two heavy sets.
+      */}
+      {targetLine ? (
+        <span
+          className={
+            ready
+              ? "text-body text-accent font-bold uppercase"
+              : "text-body text-muted tabular-nums"
+          }
+        >
+          {targetLine}
+        </span>
+      ) : null}
+
+      {/*
+        A long rest is worth saying when nothing was prescribed. With a target
+        on screen it is noise: the target already says whether the rest has run
+        past what it should be.
+      */}
+      {long && target === null ? (
+        <span className="text-body text-muted">· a long one</span>
+      ) : null}
     </p>
   );
 }

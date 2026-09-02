@@ -14,10 +14,13 @@ import {
   describeCardio,
   fetchCardioForDate,
 } from "@/lib/cardio";
+import { CardioPlan } from "@/components/CardioPlan";
+import { StabilityBlock } from "@/components/StabilityBlock";
 import {
   TodaysProgram,
   applyProgramDay,
   fetchTodaysProgram,
+  isCardioDay,
 } from "@/lib/programs";
 import {
   Split,
@@ -75,6 +78,29 @@ type Data =
 
 /** A one-off deviation. Deliberately not stored — see the spec. */
 type Override = { name: string; muscles: string[] };
+
+/**
+ * Whether logging cardio is this day's one dominant action.
+ *
+ * True only on a followed cardio day that has nothing to lift, and only while
+ * the day is still the program's own: an override replaces the day, and a
+ * workout that already exists outranks any plan, so in both cases the screen
+ * is about the workout and cardio goes back to being the quiet link at the
+ * foot.
+ *
+ * Asked in two places — by the button and by that link — which is why it is
+ * one function rather than the same condition written twice and drifting.
+ */
+function cardioIsTheAction(
+  data: Extract<Data, { status: "loaded" }>,
+  override: Override | null,
+): boolean {
+  if (override !== null) return false;
+  if (data.workout) return false;
+  const plan = data.todaysProgram;
+  if (!plan) return false;
+  return isCardioDay(plan.day.kind) && plan.exerciseCount === 0;
+}
 
 export default function TodayPage() {
   const router = useRouter();
@@ -273,9 +299,17 @@ export default function TodayPage() {
               </ul>
             </>
           ) : null}
-          <Link href="/cardio" className={`${quiet} self-start`}>
-            Add cardio
-          </Link>
+          {/*
+            Not on a day whose one action already IS logging cardio. The gold
+            button and this link go to the same screen, and offering the same
+            destination twice on one screen reads as two choices rather than
+            one.
+          */}
+          {cardioIsTheAction(data, override) ? null : (
+            <Link href="/cardio" className={`${quiet} self-start`}>
+              Add cardio
+            </Link>
+          )}
         </div>
       ) : null}
     </div>
@@ -328,6 +362,7 @@ function renderLoaded(p: LoadedProps) {
       <PlannedBlock
         {...p}
         programName={program.name}
+        plan={data.todaysProgram}
         split={{
           id: day.id,
           day_of_week: day.day_of_week ?? 0,
@@ -421,8 +456,29 @@ function Headline({ name, source }: { name: string; source: string | null }) {
   );
 }
 
-/** Ready, or a rest day. Both know what the day is; only one has a workout in it. */
+/**
+ * Ready, resting, or riding a bike.
+ *
+ * A plan used to mean one thing: a set of muscles and a Start Workout button.
+ * A program can now say the day is forty-five minutes on a bike, or an interval
+ * session, or nothing at all, and each of those wants a different screen.
+ *
+ * ONE DOMINANT ACTION still holds, which is what decides between them:
+ *
+ *   * a day with exercises is started as a workout, gold, as it always was —
+ *     including a bike day that also has carries in it, because the carries are
+ *     sets and sets are what a workout holds;
+ *   * a cardio day with no exercises offers Log Cardio instead, because there
+ *     is nothing to log sets against and a Start Workout button would open an
+ *     empty workout;
+ *   * a rest day offers neither.
+ *
+ * Never both. The bike ride on a day that also lifts is reached through the
+ * quiet Add cardio link at the foot of the screen, which is where it has always
+ * been.
+ */
 function PlannedBlock({
+  data,
   split,
   weekday,
   override,
@@ -433,9 +489,29 @@ function PlannedBlock({
   onCancelChange,
   onStart,
   programName,
-}: LoadedProps & { split: Split; programName?: string }) {
+  plan,
+}: LoadedProps & {
+  split: Split;
+  programName?: string;
+  plan?: TodaysProgram;
+}) {
   const name = override?.name ?? split.name;
-  const resting = override === null && isRestDay(split);
+
+  /*
+    An override replaces the day entirely, so a program's bike ride stops
+    applying the moment the owner says they are training something else. Every
+    question below is asked only when the day is still the program's own.
+  */
+  const following = override === null ? plan : undefined;
+  const kind = following?.day.kind;
+  const resting =
+    override === null && (kind === "rest" || (!kind && isRestDay(split)));
+
+  // A cardio day with nothing to log sets against. A day that has both, like
+  // the bike ride followed by carries, is started as a workout. Asked through
+  // the same function the quiet Add cardio link asks, so the two can never
+  // disagree about which day this is.
+  const cardioOnly = cardioIsTheAction(data, override);
 
   if (changing) {
     return (
@@ -456,21 +532,65 @@ function PlannedBlock({
         source={
           override
             ? `Instead of ${split.name} · just today`
-            : resting
-              ? null
-              : programName
-                ? // The program and the weekday, never a day number. "Day 1"
-                  // is the counter CLAUDE.md forbids, and the weekday already
-                  // separates Monday's Push from Thursday's.
-                  `${programName} · ${weekday}`
+            : programName
+              ? // The program and the weekday, never a day number. "Day 1"
+                // is the counter CLAUDE.md forbids, and the weekday already
+                // separates Monday's Push from Thursday's.
+                `${programName} · ${weekday}`
+              : resting
+                ? null
                 : `Weekday split · ${weekday}`
         }
       />
 
+      {/*
+        What the day actually asks for, when it is a machine and a length of
+        time. Without this a zone 2 day rendered as a name and an empty list:
+        a day that looked like it had nothing in it rather than a bike ride.
+      */}
+      {following?.cardio ? <CardioPlan cardio={following.cardio} /> : null}
+
+      {/*
+        What governs the whole session, when the program says so. A rest day
+        with nothing written against it still has to say something, or the
+        screen is a name over an empty space.
+      */}
+      {following?.day.notes ? (
+        <p className="text-body text-muted">{following.day.notes}</p>
+      ) : resting && following ? (
+        <p className="text-body text-muted">Nothing scheduled.</p>
+      ) : null}
+
+      {/*
+        The block that opens the day, collapsed. It is the first thing done and
+        the last thing that should be allowed to push the training off screen,
+        so it is one line until it is wanted.
+      */}
+      {following && following.stability.length > 0 ? (
+        <StabilityBlock items={following.stability} />
+      ) : null}
+
       {resting ? (
-        <p className="text-body text-muted">
-          Nothing scheduled for {weekday}s.
-        </p>
+        /*
+          A rest day from a program has already said whatever it has to say in
+          its own note above, so this does not repeat it. A weekday split has
+          no note, and its rest day would otherwise render as a name with
+          nothing under it.
+        */
+        following ? null : (
+          <p className="text-body text-muted">
+            Nothing scheduled for {weekday}s.
+          </p>
+        )
+      ) : cardioOnly ? (
+        /*
+          The one action on a bike day. A link rather than a button because it
+          goes to the cardio screen, and gold because on this day it is what
+          the screen exists for.
+        */
+        <Link href="/cardio" className={primaryAction}>
+          Log Cardio
+        </Link>
       ) : (
         <button
           type="button"

@@ -1,4 +1,5 @@
 import { Lockup } from "@/components/Lockup";
+import { ProgramSwitcher } from "@/components/ProgramSwitcher";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { SignOutButton } from "@/components/SignOutButton";
 
@@ -33,10 +34,18 @@ export default function YouPage() {
       <div className="flex flex-col gap-3">
         <ScreenTitle>You</ScreenTitle>
         <p className="text-body text-muted">
-          Units, rest timer length and your split live here once there is
-          something worth changing about them.
+          Units and your split live here once there is something worth changing
+          about them.
         </p>
       </div>
+
+      {/*
+        Which program Today reads. It lives here rather than only inside each
+        program, because switching means leaving the one you are on and that
+        should not require opening it first.
+      */}
+      <ProgramSwitcher />
+
       <SignOutButton />
       <div className="mt-auto pt-16">
         <Lockup />
