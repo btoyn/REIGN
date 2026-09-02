@@ -105,7 +105,18 @@ If it cannot answer all four, it does not ship.
 OUT OF SCOPE UNLESS ASKED
 Social feeds, followers, nutrition, macros, AI-generated workouts, challenges,
 badges, streaks, quotes, recovery scores, readiness scores, trainer marketplace,
-calorie rings, body diagrams, decorative charts, Apple Health, offline sync.
+calorie rings, body diagrams, decorative charts, offline sync.
+
+APPLE HEALTH WAS ASKED FOR, AND IS BUILT
+It was on the list above and has been taken off it, so nobody reads the list
+and removes the feature.
+REIGN still cannot write to Health. HealthKit is native and no browser API
+reaches it. Do not add a package, a bridge, Capacitor or a native wrapper. If
+you think you have found a way for web code to write to HealthKit, you are
+wrong; stop and say so.
+What exists is a shortcuts:// link that hands a finished session to a Shortcut
+the owner built. iOS reports nothing back, so nothing may claim the export
+worked. See "Apple Health, through a Shortcut" in the specification.
 
 MILESTONES
 M0 Deploy to Vercel and get it on the iPhone home screen. No design, no features.

@@ -1334,6 +1334,127 @@ it.
 
 ---
 
+
+## Apple Health, through a Shortcut
+
+REIGN cannot write to Apple Health, and this section exists partly so nobody
+tries again.
+
+HealthKit is a native iOS framework. There is no browser API for it — not a
+restricted one, not one behind a permission prompt, none at all. A web page
+added to a home screen has no route to it. No package, bridge, wrapper or
+native shell is used, and adding one would mean REIGN was no longer the thing
+it is deliberately built as.
+
+What iOS does allow is opening a Shortcut by URL. So REIGN hands a finished
+session to a Shortcut the owner built on their own phone, and the Shortcut —
+which is native, and does have HealthKit — writes it.
+
+### The export is a one-way door
+
+iOS opens the link and reports nothing back. No callback, no error, no result.
+**A Shortcut that does not exist fails exactly as silently as one that
+worked.**
+
+Every decision in the card follows from that one fact:
+
+- **The card does not disappear when the button is tapped.** There is no "done"
+  to move on from, and a card that dismissed itself would be claiming something
+  it cannot know.
+- **The same details sit underneath in words, always, never behind a toggle.**
+  The moment they are needed is the moment the button appeared to do nothing,
+  and a fallback behind "show details" is not there then.
+- **Whether it arrived is recorded only when the owner says so.** The app never
+  sets that flag itself. Tapping a button is not evidence, and a flag set
+  optimistically turns "I sent this" into "I pressed a button once".
+- **Finishing a session no longer leaves the screen.** It used to return to
+  Today, which was right when finishing was the last thing that happened to a
+  session. It is not any more.
+
+### The payload
+
+Four fields, comma separated, percent-encoded, in this order and no other:
+
+```
+workoutType,durationMinutes,startISO,endISO
+```
+
+The order is the contract with the Shortcut, which splits on commas and reads
+by position. **Nothing may be reordered or inserted in the middle without the
+Shortcut being changed to match.**
+
+No field can itself contain a comma — the type is one of two fixed words, the
+duration is an integer, and an ISO instant has none — which is what makes
+splitting on commas safe rather than lucky.
+
+Instants are **ISO 8601 with the offset they happened at**, e.g.
+`2026-09-02T17:52:00-07:00`. Not the UTC `Z` form. Both name the same instant
+and Health would accept either, but the offset says which evening this was
+where the owner was standing: a 6pm ride in California is 01:00 the next day in
+UTC, and a session that lands in Health on the wrong side of midnight is a
+session on the wrong day.
+
+Both the payload and the Shortcut's name are percent-encoded, and both need it.
+The payload carries colons, commas and the `+` of a positive offset, all of
+which mean something in a query string — an unencoded `+` arrives as a space
+and the Shortcut reads a broken timestamp. The name needs it because a Shortcut
+may be called "Log REIGN" and an unencoded space ends the URL early.
+
+### What is never sent
+
+No calories. No heart rate. The owner does not measure them and a plausible
+number in Health is worse than none, because nothing downstream can tell it was
+guessed.
+
+Nothing under a minute long, which is a mis-tap rather than a session.
+
+Nothing whose two instants are missing, which is every session recorded before
+the export existed. The card says so rather than inventing a start time.
+
+Nothing whose type the Shortcut has no word for. It speaks **strength** and
+**cycling**; a run sent as a ride would be the same lie as a guessed calorie
+count, so it is left for the fallback block.
+
+### Which type a session is
+
+Decided by **what was recorded**, not by what the program called the day:
+
+| Recorded | Sent as |
+| --- | --- |
+| A workout — sets of an exercise | `strength` |
+| A cardio session of type Cycling | `cycling` |
+| Any other cardio type | not sent; the card says why |
+
+A zone 2 or VO2 max day produces a ride, so it maps to cycling by being a ride.
+A bike day that also had carries produces a strength workout *and* a cycling
+session, which is exactly what the two of them were.
+
+### The two instants
+
+A workout already knows them: it is a row from the moment START WORKOUT is
+pressed, and it records the start and the finish as they happen. The duration
+is measured from those, never from what a program planned.
+
+A cardio session is typed in from the machine's display afterwards, so there is
+no start event to record. The end is stamped at the moment it is logged and the
+start is the entered duration before it. **This is an approximation and the
+screen shows it rather than hiding it** — log a ride an hour late and the times
+will be an hour late — which is why the fallback block shows exactly what will
+be sent before anything is sent.
+
+### On Progress
+
+Sessions that **have** reached Health are marked. Not the ones that have not.
+
+Every session in the history predates the export, so marking the unsent would
+put a line on months of rows the owner is never going to go back and enter — a
+mark on everything, saying nothing. Marking the sent starts silent and fills in
+as sessions are exported, which also makes the mark mean something: it is the
+only evidence the export ever worked.
+
+A word, never a colour or a dot.
+
+---
 # Reference Images
 
 Reference images will live in:
