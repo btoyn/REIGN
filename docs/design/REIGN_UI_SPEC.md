@@ -1199,9 +1199,19 @@ Each reads the same rows. None of them needs a column added.
 
 ## Consistency
 
-How much training there has actually been: a count of finished workouts in the
-last four weeks, with the four weeks before it beside it. The count is the large
-number the specification asks for; the label under it is the restrained part.
+How much training there has actually been: a count of everything in the history
+over the last four weeks, with the four weeks before it beside it. The count is
+the large number the specification asks for; the label under it is the
+restrained part.
+
+**Rides count.** On a weekday split half the week can be riding — Longevity 6
+has two cardio days out of six — and a figure that counted only the lifting
+would report a six-day week as three. It reads from the same list the rows
+below it are drawn from, so the number can never disagree with what is under
+it.
+
+The label still says `workouts`. A ride is a workout, and CLAUDE.md rules out
+calling either of them a session.
 
 **A count over a window, never a streak.** CLAUDE.md puts streaks out of scope
 and it is right to: a streak turns one missed Tuesday into a punishment, and
@@ -1299,35 +1309,74 @@ test.
 
 ## History
 
-Every finished workout, newest first. The one in progress is not here: it is on
-Today, which is the screen for the day you are in. A workout walked out of and
-never finished is not a record of anything, so it is not here either.
+Every finished workout and every recorded ride, newest first. The one in
+progress is not here: it is on Today, which is the screen for the day you are
+in. A workout walked out of and never finished is not a record of anything, so
+it is not here either.
 
-**Each row is the split name, a line about the workout, and the day.**
-`Back` / `5 exercises · 52 min` / `Sunday 30`. The split name leads because that
-is what the day was, and it is how the owner thinks about it. A workout started
-outside the schedule has no split, so it reads `Workout` and the date carries
-it.
+**One list, not two sections.** A weekday split holds lifting days and riding
+days and the owner does both in the same week, so "what have I done lately" is
+one question with one answer. Two lists would mean looking in two places and
+adding them up by eye, and the count above them would agree with neither.
+
+**Each row is a name, a line about it, and the day.**
+`Back` / `5 exercises · 52 min` / `Sunday 30` for a lift.
+`Cycling` / `55 min · 12.4 mi` / `Monday 31` for a ride.
+
+The name is the split for a lift, because that is what the day was and it is how
+the owner thinks about it; a workout started outside the schedule has no split,
+so it reads `Workout` and the date carries it. For a ride the name is the
+machine.
 
 **The line is assembled when rendering.** `5 exercises, 52 min` is the example
-CLAUDE.md uses for something that must never be a database column, and it is
-not one. A workout with no start time to measure from leaves the duration out
-rather than showing a nought or a dash, the same rule cardio follows.
+CLAUDE.md uses for something that must never be a database column, and it is not
+one. Whatever was not measured is left out rather than shown as a nought or a
+dash — a bike gives distance and a stair climber does not. A ride's line does
+not repeat its own machine name, which is already the row's title; a ride the
+machine reported nothing at all about says `Nothing recorded` rather than
+sitting empty.
 
 **Months are headings.** A year of training is a long list of dates, and a date
 on its own does not say how long ago it was. The heading gives the list a spine
 without adding a control or another tap.
 
-**A row opens the workout itself**, not a second read-only view of the same
+**Order is by the calendar date first, and only then by the time within it.**
+The date is the day a thing belongs to and the instant merely separates two
+things inside it. On rows REIGN wrote itself the two agree, because both are
+stamped at the same moment; they stop agreeing as soon as a UTC instant sits
+beside a local date that was not written with it, and then the date wins — it is
+the day the owner remembers, and it is the day the heading above the row was
+chosen from. Anything with no instant sorts below the things on its day that
+have one: a row that cannot say when it happened is not placed as though it
+could.
+
+**A lift row opens the workout itself**, not a second read-only view of the same
 rows. The workout screen already shows a finished workout correctly: its
 exercises, the sets under each, and none of the controls. It now also says when
 it was and how long it took, because reached from here it needs to.
+
+**A ride row opens nothing.** Everything recorded about a ride is already on its
+line, and a screen that only repeats the line it was reached from is a tap that
+gives nothing back.
+
+So the two rows are laid out identically and one of them happens to be a link.
+Nothing marks which. The difference is not a state the owner needs to read, and
+a marker on every lifting row to say "this one opens" would be decoration across
+the whole list to describe a tap. What distinguishes them is the only thing that
+should — what they say.
 
 **There is no primary action**, the way Program has none. This is a screen for
 reading. Starting a workout lives on Today, and repeating it here would put two
 primary actions in the app for the same thing.
 
-**Empty, it says what will fill it** rather than only that it is empty.
+**Empty, it says what will fill it** rather than only that it is empty, and it
+names both kinds: rides alone are a history, not an empty screen.
+
+**A cardio read that fails takes the screen to its error state.** Bodyweight is
+caught and allowed to come back empty, because a scale reading is beside the
+history rather than part of it. Cardio is not: showing the lifts and quietly
+dropping the rides would be a screen reporting three sessions in a week that
+held six.
 
 ---
 

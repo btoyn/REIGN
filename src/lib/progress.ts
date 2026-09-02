@@ -1,3 +1,5 @@
+import type { CardioSession } from "@/lib/cardio";
+import { describeCardio } from "@/lib/cardio";
 import { getSupabase } from "@/lib/supabase";
 import { daysBetween } from "@/lib/variety";
 
@@ -19,6 +21,13 @@ export type PastWorkout = {
   /** The split it was, if the day had one. */
   splitName: string | null;
   exercises: number;
+  /**
+   * When it started, which orders two things done on the same day.
+   *
+   * Null for a workout with no start time. The history places those below the
+   * ones that have one rather than guessing at an hour.
+   */
+  startedAt: string | null;
   /** Null when the workout has no start time to measure from. */
   minutes: number | null;
   /**
@@ -53,16 +62,19 @@ export async function fetchWorkoutHistory(): Promise<PastWorkout[]> {
     counts.set(entry.workout_id, (counts.get(entry.workout_id) ?? 0) + 1);
   }
 
+  /*
+    Unordered. These are merged with the cardio history and ordered alongside
+    it by mergeHistory; sorting them here as well would mean the list on screen
+    was ordered by two rules and nobody could say which one won.
+  */
   return (workouts ?? [])
     .filter((w) => w.finished_at !== null)
-    .sort((a, b) =>
-      (b.started_at ?? b.date).localeCompare(a.started_at ?? a.date),
-    )
     .map((w) => ({
       id: w.id,
       date: w.date,
       splitName: w.split_name,
       exercises: counts.get(w.id) ?? 0,
+      startedAt: w.started_at,
       minutes: elapsedMinutes(w.started_at, w.finished_at),
       sentToHealth: w.sent_to_health,
     }));
@@ -210,7 +222,7 @@ export type Consistency = {
 };
 
 export function consistency(
-  workouts: PastWorkout[],
+  done: { date: string }[],
   today: string,
   days: number = CONSISTENCY_DAYS,
 ): Consistency {
@@ -218,7 +230,7 @@ export function consistency(
   let previous = 0;
   let anyOlder = false;
 
-  for (const workout of workouts) {
+  for (const workout of done) {
     const ago = daysBetween(workout.date, today);
     if (ago < days) recent += 1;
     else if (ago < days * 2) previous += 1;
@@ -240,7 +252,119 @@ export function describePrevious(c: Consistency): string | null {
   return `${c.previous} in the ${Math.round(CONSISTENCY_DAYS / 7)} weeks before that`;
 }
 
-export type Month = { label: string; workouts: PastWorkout[] };
+/**
+ * One thing that was done, whichever kind it was.
+ *
+ * The history is one list. A weekday split holds lifting days and riding days
+ * and the owner does both in the same week, so "what have I done lately" is
+ * one question with one answer. Two lists would mean scrolling to two places
+ * and adding them up by eye, and the count above them would agree with neither.
+ *
+ * A strength row opens the workout, because that screen already shows a
+ * finished workout correctly. A ride does not open anything: everything
+ * recorded about it is on its one line, and a screen that only repeats the
+ * line it was reached from is a tap that gives nothing back.
+ */
+export type HistoryEntry =
+  | { kind: "workout"; id: string; date: string; workout: PastWorkout }
+  | { kind: "cardio"; id: string; date: string; cardio: CardioSession };
+
+/** The name of the thing, which is the split for a lift and the machine for a ride. */
+export function entryTitle(entry: HistoryEntry): string {
+  return entry.kind === "workout"
+    ? (entry.workout.splitName ?? "Workout")
+    : entry.cardio.type;
+}
+
+/**
+ * The line under it.
+ *
+ * A ride's type is already the title, so it is dropped from the description
+ * rather than printed twice — "Cycling / Cycling · 55 min" reads as a mistake.
+ * If the machine reported nothing but the type, the line says so rather than
+ * sitting empty.
+ */
+export function entryDescription(entry: HistoryEntry): string {
+  if (entry.kind === "workout") return describeWorkout(entry.workout);
+
+  const parts = describeCardio(entry.cardio)
+    .split(" · ")
+    .filter((part) => part !== entry.cardio.type);
+
+  if (parts.length === 0) parts.push("Nothing recorded");
+  // Same rule as a workout: the ones that reached Health are marked, in a
+  // word rather than a colour, and the ones that have not say nothing.
+  if (entry.cardio.sent_to_health) parts.push("in Health");
+  return parts.join(" · ");
+}
+
+/**
+ * The strength history and the cardio history as one list, newest first.
+ *
+ * Ordered by the calendar date first and only then by the instant, which is
+ * the rule the rest of REIGN uses: the date is the day a thing belongs to, and
+ * the instant merely separates two things within it. On rows REIGN wrote
+ * itself the two agree, because both are stamped at the same moment. They stop
+ * agreeing as soon as a UTC instant sits beside a local date that was not
+ * written with it, and then the date has to win — it is the day the owner
+ * remembers doing the thing on, and it is the day the month heading above the
+ * row was chosen from.
+ *
+ * Anything with no instant sorts below the things on its day that have one: a
+ * row that cannot say when it happened should not be placed as though it
+ * could.
+ *
+ * With nothing left, the id decides. Not because an id means anything, but so
+ * the order is stated rather than inherited from which of the two lists was
+ * concatenated first.
+ */
+export function mergeHistory(
+  workouts: PastWorkout[],
+  cardio: CardioSession[],
+): HistoryEntry[] {
+  const entries: HistoryEntry[] = [
+    ...workouts.map(
+      (workout): HistoryEntry => ({
+        kind: "workout",
+        id: workout.id,
+        date: workout.date,
+        workout,
+      }),
+    ),
+    ...cardio.map(
+      (session): HistoryEntry => ({
+        kind: "cardio",
+        id: session.id,
+        date: session.date,
+        cardio: session,
+      }),
+    ),
+  ];
+
+  return entries.sort(
+    (a, b) =>
+      b.date.localeCompare(a.date) ||
+      instant(b).localeCompare(instant(a)) ||
+      a.id.localeCompare(b.id),
+  );
+}
+
+/**
+ * When within its day, as one comparable string.
+ *
+ * The empty string for anything that has none, which sorts below every real
+ * instant in a newest-first list. That is the honest place for it: a row that
+ * cannot say when it happened should not be placed as though it could.
+ */
+function instant(entry: HistoryEntry): string {
+  const at =
+    entry.kind === "workout"
+      ? entry.workout.startedAt
+      : entry.cardio.started_at;
+  return at ?? "";
+}
+
+export type Month = { label: string; entries: HistoryEntry[] };
 
 /**
  * The history, under month headings.
@@ -252,13 +376,13 @@ export type Month = { label: string; workouts: PastWorkout[] };
  * The input is already newest first, so this preserves that order rather than
  * sorting again.
  */
-export function byMonth(workouts: PastWorkout[]): Month[] {
+export function byMonth(entries: HistoryEntry[]): Month[] {
   const months: Month[] = [];
-  for (const workout of workouts) {
-    const label = monthLabel(workout.date);
+  for (const entry of entries) {
+    const label = monthLabel(entry.date);
     const current = months[months.length - 1];
-    if (current && current.label === label) current.workouts.push(workout);
-    else months.push({ label, workouts: [workout] });
+    if (current && current.label === label) current.entries.push(entry);
+    else months.push({ label, entries: [entry] });
   }
   return months;
 }

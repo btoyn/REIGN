@@ -58,6 +58,22 @@ export const CARDIO_TYPES = [
   "Walking",
 ] as const;
 
+/**
+ * Every cardio session, in whatever order the database returns them.
+ *
+ * Deliberately unordered here. These are merged with the strength history and
+ * ordered alongside it, and a list sorted twice by two different rules is a
+ * list whose order nobody can account for.
+ */
+export async function fetchCardioHistory(): Promise<CardioSession[]> {
+  const { data, error } = await getSupabase()
+    .from("cardio_sessions")
+    .select(COLUMNS);
+
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
 export async function fetchCardioForDate(
   date: string,
 ): Promise<CardioSession[]> {
