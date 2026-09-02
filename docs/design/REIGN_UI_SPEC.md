@@ -212,6 +212,79 @@ Do not place the lion on every screen.
 
 The workout interface should prioritize function over branding.
 
+## Where the lockup actually appears
+
+Two places, and the reasoning is worth keeping because "high-impact brand
+moments" is a phrase that will otherwise justify putting the lion anywhere.
+
+**The launch screen.** The second between tapping the home screen icon and the
+app being ready to draw. Until now iOS filled it with the manifest's background
+colour and nothing else. This is the one place in an app where a full logo
+unambiguously belongs, because it is gone before it can be in the way. It costs
+no screen space, competes with no action, and is the only moment where the app
+has nothing else to say.
+
+iOS matches launch images on exact pixel dimensions and will not scale one to
+fit, so there is one file per device size. Ten are supplied, covering the
+iPhone SE 2/3 through the 17 Pro Max. A device matching none of them gets the
+blank background it got before, so an unlisted size is never worse than having
+no launch image at all.
+
+Next has no metadata field for these. They are plain `apple-touch-startup-image`
+link elements in the document head.
+
+**The foot of the You tab.** The only screen in the app that is not answering a
+question during a workout. Today, Program and Progress all exist to tell the
+owner something between sets, and a logo on any of them is a logo standing
+between them and the answer. You asks nothing of anyone, so the space below its
+last control is genuinely spare.
+
+Rules it follows there:
+
+- **160px wide**, from 536px of artwork, so a 3x screen never upscales it. The
+  lockup carries fine facet work in the mane and a line of small type beneath,
+  and both go to mush when the source is close to the display size.
+- **Left aligned**, to the same edge as every other element in REIGN. Centring
+  it would make the mark the one thing on the screen arranged to a different
+  rule.
+- **On the app's own background.** No card, no border, no panel, no plate. The
+  artwork is transparent and the surface behind it is `bg`.
+- **Set against the bottom**, not trailing the last control. There is almost
+  nothing on this screen yet, so a mark that follows the copy lands a third of
+  the way down with a field of black beneath it, which reads as a page that was
+  cut off. At the bottom it reads as a signature. When settings arrive and the
+  content grows past the screen, it simply follows them.
+- **Never the screen's action.** Sign out is. The lockup is below it and quiet.
+
+It is served unoptimised, for the same reason the wordmark is: Next's image
+optimiser offers at most twice the display width, which would hand a phone
+320px of a mark that has 536px available and soften it for no saving worth
+having.
+
+### Nowhere else
+
+Today keeps the wordmark and only the wordmark. Program, Progress, Cardio and
+every screen inside a workout carry no mark at all. This is checked rather than
+intended: the walk asserts the lockup appears exactly once in the whole app.
+
+### The transparent file
+
+`assets/brand/reign-logo-transparent.png` is derived from the supplied
+`reign-logo-approved.png`, which is opaque and would otherwise show its own
+near-black rectangle against the app background. The supplied file is untouched
+beside it.
+
+The transparency was cut by flooding in from the edges rather than by keying out
+the background colour, and the difference matters here in a way it did not for
+the wordmark. The lion's own facets reach pure black — darker than the
+near-black behind it — and 4,283 pixels inside the mark match the background
+exactly. Keying on colour would have punched holes through the mane. The result
+was checked afterwards: no colour altered, no holes, ink coverage identical to
+the pixel.
+
+Nothing was upscaled anywhere. Every splash image places the lockup at
+`min(536, 46% of the device width)`, so the mark is only ever reduced.
+
 ---
 
 # Navigation

@@ -10,8 +10,15 @@ import { TabBar } from "@/components/TabBar";
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <AuthGate>
-      <main className="px-gutter pt-safe flex-1">
-        <div className="flex flex-col pt-6 pb-8">{children}</div>
+      {/*
+        The column fills the height it is given rather than stopping at the
+        bottom of its content. Nothing that simply stacks downward notices,
+        because they all still start at the top; it only means a screen that
+        wants something set against the bottom edge has a bottom edge to set it
+        against.
+      */}
+      <main className="px-gutter pt-safe flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col pt-6 pb-8">{children}</div>
       </main>
       <TabBar />
     </AuthGate>
