@@ -4,10 +4,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { HealthCard } from "@/components/HealthCard";
 import { NumberPad, PadKey } from "@/components/NumberPad";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { primaryAction, choice, quiet } from "@/components/controls";
-import { CARDIO_TYPES, logCardio } from "@/lib/cardio";
+import {
+  CARDIO_TYPES,
+  CardioSession,
+  describeCardio,
+  logCardio,
+  markCardioSentToHealth,
+} from "@/lib/cardio";
+import { HealthSession } from "@/lib/health";
 import { Field, applyKey, displayValue } from "@/lib/entry";
 import { todayDate } from "@/lib/workouts";
 
@@ -38,6 +46,13 @@ export default function CardioPage() {
   const [active, setActive] = useState<Field>("minutes");
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  /*
+    The session once it is recorded. Saving used to return to Today, which was
+    right when logging was the last thing that happened to a ride. It is not
+    any more: a ride is the session Peloton wants out of Health, so this screen
+    now stays put and offers the hand-over.
+  */
+  const [saved, setSaved] = useState<CardioSession | null>(null);
 
   function press(key: PadKey) {
     setFailed(false);
@@ -60,7 +75,7 @@ export default function CardioPage() {
     setBusy(true);
     setFailed(false);
     try {
-      await logCardio({
+      const session = await logCardio({
         date: todayDate(),
         type: CARDIO_TYPES[type],
         duration_min: number("minutes"),
@@ -69,12 +84,65 @@ export default function CardioPage() {
         max_hr: null,
         calories: number("calories"),
       });
-      router.push("/");
+      setSaved(session);
     } catch (e) {
       console.error("could not save the cardio session", e);
       setFailed(true);
+    } finally {
       setBusy(false);
     }
+  }
+
+  /** Whether it reached Health, as stated by the owner. The app cannot know. */
+  async function markSent(sent: boolean) {
+    if (!saved) return;
+    try {
+      await markCardioSentToHealth(saved.id, sent);
+      setSaved({ ...saved, sent_to_health: sent });
+    } catch (e) {
+      console.error("could not record whether it was sent", e);
+    }
+  }
+
+  /*
+    The recorded session, and what is left to do with it.
+
+    Its own screen rather than a card bolted under the number pad: the entry is
+    finished, so keeping the pad and the fields on screen would offer editing a
+    session that has already been written.
+  */
+  if (saved) {
+    return (
+      <div className="flex flex-col gap-6">
+        <ScreenTitle>Cardio</ScreenTitle>
+
+        <div className="flex flex-col gap-1">
+          <p className="text-display text-ink font-condensed uppercase">
+            Recorded
+          </p>
+          <p className="text-body text-muted">{describeCardio(saved)}</p>
+        </div>
+
+        <HealthCard
+          session={healthSession(saved)}
+          sent={saved.sent_to_health}
+          onMarkSent={markSent}
+          unavailable={
+            saved.type === "Cycling"
+              ? "This one was recorded before REIGN tracked start and finish times, so there is nothing to send."
+              : `The shortcut knows strength training and cycling. Sending ${saved.type.toLowerCase()} as a ride would put the wrong thing in Health, so it is left for you to enter by hand.`
+          }
+        />
+
+        <button
+          type="button"
+          onClick={() => router.push("/")}
+          className={`${quiet} self-start`}
+        >
+          Back to Today
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -159,4 +227,26 @@ export default function CardioPage() {
       </Link>
     </div>
   );
+}
+
+/**
+ * A recorded ride as the two instants Health wants, or null.
+ *
+ * Cycling for a ride. Anything else — a run, a row, a walk — returns null and
+ * the card says there is nothing to send, because the Shortcut speaks two words
+ * and calling a run a ride would put a wrong session in Health. That is the
+ * same rule as not writing calories: a plausible wrong number is worse than
+ * none, since nothing downstream can tell it was invented.
+ *
+ * Null also when the instants are missing, which is true of every session
+ * recorded before REIGN stamped them.
+ */
+function healthSession(session: CardioSession): HealthSession | null {
+  if (session.type !== "Cycling") return null;
+  if (!session.started_at || !session.finished_at) return null;
+  return {
+    type: "cycling",
+    start: new Date(session.started_at),
+    end: new Date(session.finished_at),
+  };
 }

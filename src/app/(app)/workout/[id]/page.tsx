@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 
+import { HealthCard } from "@/components/HealthCard";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { Skeleton } from "@/components/Skeleton";
 import { primaryAction, quiet, secondaryAction } from "@/components/controls";
 import { Exercise, fetchExercisesByIds } from "@/lib/exercises";
+import { HealthSession } from "@/lib/health";
 import { dayLabel, elapsedMinutes, monthLabel } from "@/lib/progress";
 import { LoggedSet, describeSets, fetchSetsForEntries } from "@/lib/sets";
 import {
@@ -18,6 +20,7 @@ import {
   fetchWorkoutExercises,
   finishWorkout,
   isInProgress,
+  markWorkoutSentToHealth,
 } from "@/lib/workouts";
 
 /**
@@ -113,16 +116,41 @@ export default function WorkoutPage({ params }: PageProps<"/workout/[id]">) {
     }
   }
 
+  /**
+   * Finish, and stay here.
+   *
+   * This used to return to Today, which was right when finishing was the last
+   * thing that happened to a workout. It is not any more: the session still has
+   * to be handed to Apple Health, and bouncing to Today would mean finding the
+   * workout again from Progress to do it.
+   *
+   * The screen is already the right one to stay on — a finished workout is this
+   * same screen with its controls gone — so finishing now swaps the controls
+   * for the export card in place.
+   */
   async function finish() {
     if (data.status !== "ready") return;
     setBusy(true);
     try {
-      await finishWorkout(data.workout.id);
-      router.push("/");
+      const workout = await finishWorkout(data.workout.id);
+      setData({ ...data, workout });
     } catch (e) {
       console.error("finishWorkout failed", e);
       setData({ status: "error" });
+    } finally {
       setBusy(false);
+    }
+  }
+
+  /** Whether it reached Health, as stated by the owner. The app cannot know. */
+  async function markSent(sent: boolean) {
+    if (data.status !== "ready") return;
+    try {
+      await markWorkoutSentToHealth(data.workout.id, sent);
+      setData({ ...data, workout: { ...data.workout, sent_to_health: sent } });
+    } catch (e) {
+      console.error("could not record whether it was sent", e);
+      setData({ status: "error" });
     }
   }
 
@@ -310,6 +338,23 @@ export default function WorkoutPage({ params }: PageProps<"/workout/[id]">) {
       )}
 
       {/*
+        Handing the session to Apple Health, once there is a finished session to
+        hand over. Only on a finished workout: an export of something still in
+        progress would be an export of a length of time that is still growing.
+
+        Nothing here writes to Health. It opens a Shortcut the owner built, and
+        iOS never reports back, which is why the card stays put and why whether
+        it arrived is the owner's statement rather than the app's.
+      */}
+      {finished ? (
+        <HealthCard
+          session={healthSession(workout)}
+          sent={workout.sent_to_health}
+          onMarkSent={markSent}
+        />
+      ) : null}
+
+      {/*
         Deleting a stored workout, which had no way to happen anywhere before.
 
         Today can discard the session you are in the middle of, but only that
@@ -357,4 +402,27 @@ function describeWhen(workout: Workout): string {
   const when = `${dayLabel(workout.date)} ${monthLabel(workout.date)}`;
   const minutes = elapsedMinutes(workout.started_at, workout.finished_at);
   return minutes === null ? when : `${when} · ${minutes} min`;
+}
+
+/**
+ * A finished workout as the two instants Health wants, or null.
+ *
+ * Null when either instant is missing, which is true of workouts recorded
+ * before REIGN stamped a start time. The card says so rather than inventing
+ * one: a made-up start would put a session in Health at a time it did not
+ * happen, and nothing downstream could tell.
+ *
+ * The type is always strength, whatever kind of day the workout was started
+ * from. What decides it is what was recorded — a workout holds sets, and sets
+ * are strength training — not what the program called the day. A bike day that
+ * also had carries in it produces a strength workout and a cycling ride, which
+ * is exactly what the two of them were.
+ */
+function healthSession(workout: Workout): HealthSession | null {
+  if (!workout.started_at || !workout.finished_at) return null;
+  return {
+    type: "strength",
+    start: new Date(workout.started_at),
+    end: new Date(workout.finished_at),
+  };
 }

@@ -1,5 +1,6 @@
 import { Lockup } from "@/components/Lockup";
 import { ProgramSwitcher } from "@/components/ProgramSwitcher";
+import { ShortcutName } from "@/components/ShortcutName";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { SignOutButton } from "@/components/SignOutButton";
 
@@ -45,6 +46,14 @@ export default function YouPage() {
         should not require opening it first.
       */}
       <ProgramSwitcher />
+
+      {/*
+        The one setting the Apple Health export has. The link addresses the
+        shortcut by name and fails silently if the name is wrong, so the name
+        is the single thing that can break the export and the owner is the only
+        person who knows it.
+      */}
+      <ShortcutName />
 
       <SignOutButton />
       <div className="mt-auto pt-16">
