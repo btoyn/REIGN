@@ -496,8 +496,9 @@ The tab is one tap away.
 
 # Program — the weekday schedule
 
-The first real content in the Program tab. Browsable programs remain a later
-milestone; this is the split, which is what Today actually reads.
+The first real content in the Program tab. Browsable programs came later and
+are built now, in the section below; this is the split, which is still what
+Today reads when no program is active.
 
 ## Why it exists now
 
@@ -529,8 +530,14 @@ empty state beyond that: the seven weekdays always exist, answered or not.
 
 # Program — following a real program
 
-A later milestone than the weekday schedule above, specified here because it
-shapes decisions being made now.
+Built after the weekday schedule above, and built. Longevity 6 is seeded by
+`supabase/seed/longevity_6.sql`, and Bigger Leaner Stronger was migrated into
+the same shape without a row of it being altered. A switcher on You decides
+which program Today reads.
+
+Following one is optional and stays optional. With no program active,
+`fetchTodaysProgram` returns null and Today falls back to the weekday split
+above — which is why it returns null rather than throwing.
 
 ## A split day is not always one region
 
@@ -1077,7 +1084,9 @@ beside the seven rather than altering any of them.
 
 # Active Workout Direction
 
-This is not part of the current milestone, but future implementation should follow these principles.
+Written before the logging engine existed. It is built now — see the workout and
+exercise screens above, which are the record of what shipped. This section is
+kept for the principles, which still hold.
 
 The workout screen prioritizes speed.
 
@@ -1895,11 +1904,15 @@ on each platform. No custom font is loaded.
 
 # Milestones
 
-`CLAUDE.md` holds the current milestone list and states which one is active.
-It takes precedence over this document on scope and sequencing.
+`CLAUDE.md` holds the milestone list. It takes precedence over this document on
+scope and sequencing.
 
-This specification describes the intended design across all of them. Do not
-build ahead of the active milestone just because the design for a later one is
-described here.
+**All seven are shipped.** There is no active milestone and no M8, so the rule
+that used to sit here — do not build ahead of the active one — has nothing left
+to hold back. What replaces it is in `CLAUDE.md`: the feature admission test is
+the whole gate, and its second question is now which request from the owner
+asked for the thing. Nothing gets built on a guess about what they would want.
 
-The visual result should be reviewed before building the workout logging system.
+This specification still describes the intended design across all of them, and
+parts of it describe things that were never built. A section being here is not
+an instruction to build it.
