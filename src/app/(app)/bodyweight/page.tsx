@@ -18,6 +18,7 @@ import {
 } from "@/lib/bodyweight";
 import { applyKey, displayValue } from "@/lib/entry";
 import { shortDate } from "@/lib/progress";
+import { isTableNotThere } from "@/lib/schema";
 import { todayDate } from "@/lib/workouts";
 
 /**
@@ -32,10 +33,18 @@ import { todayDate } from "@/lib/workouts";
  * it, the owner cannot tell whether they are adding or overwriting.
  *
  * The trend lives on Progress. This screen is for putting the number in.
+ *
+ * IT DISTINGUISHES A DATABASE THAT CANNOT BE REACHED FROM ONE THAT HAS NO
+ * PLACE TO PUT THE NUMBER. REIGN's migrations are run by hand, so between this
+ * screen shipping and its table being created every read of it fails — and
+ * saying "check your connection" then is the one explanation that is certainly
+ * wrong. The owner would go and look at their wifi.
  */
 
 type State =
   | { status: "loading" }
+  /** Reachable, but there is nowhere to store a weigh-in yet. */
+  | { status: "not set up" }
   | { status: "error" }
   | { status: "ready"; weighins: Weighin[] };
 
@@ -68,7 +77,7 @@ export default function BodyweightPage() {
       .catch((e: Error) => {
         if (!active) return;
         console.error("could not read the weigh-ins", e);
-        setState({ status: "error" });
+        setState({ status: isTableNotThere(e) ? "not set up" : "error" });
       });
 
     return () => {
@@ -93,7 +102,14 @@ export default function BodyweightPage() {
       router.push("/progress");
     } catch (e) {
       console.error("could not save the weigh-in", e);
-      setFailed(true);
+      /*
+        The read can succeed against a stale schema cache and the write still
+        land on a table that is not there, so the same distinction has to be
+        made here. It takes over the whole screen rather than sitting under the
+        pad: there is nothing to type into until it is fixed.
+      */
+      if (isTableNotThere(e)) setState({ status: "not set up" });
+      else setFailed(true);
     } finally {
       setBusy(false);
     }
@@ -125,6 +141,48 @@ export default function BodyweightPage() {
         <ScreenTitle>Bodyweight</ScreenTitle>
         <Skeleton className="h-[42px] w-1/2" />
         <Skeleton className="mt-4 h-64 w-full rounded-lg" />
+      </div>
+    );
+  }
+
+  /*
+    Named plainly, with the one thing that fixes it. The owner runs REIGN's
+    migrations themselves in Supabase, so the file name is not developer jargon
+    here — it is the actual instruction, and it is the shortest true answer.
+  */
+  if (state.status === "not set up") {
+    return (
+      <div className="flex flex-col gap-5">
+        <ScreenTitle>Bodyweight</ScreenTitle>
+        <div className="flex flex-col gap-2">
+          <p role="alert" className="text-lead text-ink">
+            Weigh-ins have nowhere to be stored.
+          </p>
+          <p className="text-body text-muted">
+            Your database does not have the bodyweight table yet. This is not a
+            connection problem and retrying will not fix it.
+          </p>
+          <p className="text-body text-muted">
+            In Supabase, open the SQL Editor and run{" "}
+            <span className="text-ink">
+              supabase/migrations/0008_bodyweight.sql
+            </span>{" "}
+            from the REIGN repository, then come back here.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setState({ status: "loading" });
+            setAttempt((n) => n + 1);
+          }}
+          className={secondaryAction}
+        >
+          Check again
+        </button>
+        <Link href="/you" className={`${quiet} self-start`}>
+          Back to You
+        </Link>
       </div>
     );
   }

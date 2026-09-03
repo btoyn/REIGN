@@ -1356,6 +1356,39 @@ the owner rather than about their training.
 Absent from Progress entirely until there is a reading. An empty chart is worse
 than no chart.
 
+## When the table is not there
+
+REIGN's migrations are run by hand, in Supabase, by the owner. There is
+therefore a window between a screen shipping and its table existing, and in
+that window every read of it fails.
+
+**That is reported as what it is, never as a connection problem.** PostgREST
+answers a missing table with `PGRST205` or Postgres' `42P01`, and both are
+recognised by code — never by matching the wording, which is how a check starts
+firing on the wrong thing. Every other failure keeps the ordinary "check your
+connection and try again", because for every other failure that is the right
+advice.
+
+The Bodyweight screen then says `Weigh-ins have nowhere to be stored`, states
+plainly that this is not the connection and that retrying will not fix it, and
+names the file to run and where to run it. The number pad is not shown: there
+is nothing to type into. The button says `Check again` rather than `Try again`,
+because nothing is being retried — the owner is going away to do something and
+coming back.
+
+**The You row says `Not set up`, not `Not recorded`.** An ordinary failed read
+still says `Not recorded` and still links onward, which stays the right call:
+it might genuinely be empty, the next tap probably works, and there is nothing
+to be done from there. A missing table is different, because `Not recorded`
+reads as a normal empty row — the owner taps through expecting the pad and
+meets a screen that cannot take a number. The one state they have to act on
+would be the state the row disguised.
+
+Getting this wrong is not cosmetic. The owner is not a developer, and an error
+naming the wrong cause sends them looking in the wrong place. It already cost
+this project an evening once, over a Shortcut reporting that a workout could
+not be logged when the real problem was a blank Distance field.
+
 ## One reading per day
 
 Enforced by the schema, not hoped for. Stepping on the scales twice on a
