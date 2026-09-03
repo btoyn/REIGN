@@ -117,7 +117,9 @@ An unhandled empty state is a bug, not a later task.
 FEATURE ADMISSION TEST
 Before anything ships, it must answer all four:
 1. What decision or action does it help with during a workout?
-2. Which current milestone requires it?
+2. Which request from the owner asked for it? The milestones are all shipped, so
+   there is no milestone left to point at. If nothing they said asked for it,
+   ask them rather than deciding for them.
 3. What data makes it truthful?
 4. Does REIGN_UI_SPEC.md support it?
 If it cannot answer all four, it does not ship.
@@ -163,21 +165,35 @@ import settings are in "Apple Health, through a Shortcut" in the
 specification. Read that before changing anything about the payload.
 
 MILESTONES
-M0 Deploy to Vercel and get it on the iPhone home screen. No design, no features.
-M1 Four tabs, theme tokens, Today screen with an honest empty state.
-M2 The logging engine. Start a workout, pick a muscle, pick an exercise, log sets.
-   Two to three taps per set. Custom number pad, not the iOS keyboard.
-M3 Last performance shown on open. Double progression suggestions. PR detection.
-M4 Rest timer with screen wake lock. Manual cardio entry.
-M5 Variety. Browse by sub-muscle, sorted by time since last performed.
-M6 Weekday splits, then optional programs.
-M7 Progress. History, PRs, strength trend.
+All seven are shipped and deployed. They are kept here because they say what
+each part of REIGN was for, which is worth knowing before changing it.
+M0 DONE Deploy to Vercel and get it on the iPhone home screen. No design, no
+        features.
+M1 DONE Four tabs, theme tokens, Today screen with an honest empty state.
+M2 DONE The logging engine. Start a workout, pick a muscle, pick an exercise,
+        log sets. Two to three taps per set. Custom number pad, not the iOS
+        keyboard.
+M3 DONE Last performance shown on open. Double progression suggestions. PR
+        detection.
+M4 DONE Rest timer with screen wake lock. Manual cardio entry.
+M5 DONE Variety. Browse by sub-muscle, sorted by time since last performed.
+M6 DONE Weekday splits, then optional programs.
+M7 DONE Progress. History, PRs, strength trend.
+
+SHIPPED AFTER THE LIST, because the owner asked for them
+Apple Health export through a Shortcut. Bodyweight, with the one chart.
+Hiding exercises the gym trim got wrong. Pinned swap alternatives. A program
+shape that holds cardio days and a stability block. Cardio in the history.
+Each has its own section above or in the specification.
 
 WORKING RULES
 Never ship code you have not actually run. If this environment blocks testing,
 build a local equivalent and test there. A check that cannot fail is worse than
 no check.
-Do not build ahead of the current milestone, even if it seems small.
+There is no milestone left to build ahead of, so the FEATURE ADMISSION TEST is
+now the whole gate. Its second question changes: instead of naming a milestone,
+say which thing the owner asked for. If they did not ask for it, ask before
+building it rather than deciding for them.
 Read docs/design/ before building a screen.
 Use existing theme tokens. Do not invent colors.
 Commit after every working feature.
@@ -195,7 +211,18 @@ owner assumed a caching problem once when the merge simply had not happened, and
 that was avoidable.
 
 CURRENT MILESTONE
-M2.
+None. M0 to M7 are all shipped and on production.
+
+This said M2 for a long time after M2 was finished, which made it useless: a
+milestone that is wrong cannot restrain anything, and every screen built since
+was built ahead of it. Verified before writing this rather than assumed — the
+number pad, progression, PR detection, the rest timer and its wake lock, manual
+cardio, browse by sub-muscle, splits and programs, and history with records and
+the strength trend are all in the codebase and deployed.
+
+So work is now taken one request at a time. What is next is whatever the owner
+asks for next, and nothing gets built on a guess about what they would want.
+There is no M8: inventing one would be inventing a plan they never set.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
