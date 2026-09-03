@@ -1,4 +1,5 @@
 import { shortDate } from "@/lib/progress";
+import { fail } from "@/lib/schema";
 import { getSupabase } from "@/lib/supabase";
 
 /**
@@ -39,7 +40,7 @@ export async function fetchWeighins(): Promise<Weighin[]> {
     .select(COLUMNS)
     .order("date", { ascending: false });
 
-  if (error) throw new Error(error.message);
+  if (error) fail(error, "bodyweight");
   return data ?? [];
 }
 
@@ -60,7 +61,7 @@ export async function logWeight(
     .select(COLUMNS)
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) fail(error, "bodyweight");
   return data;
 }
 
@@ -69,7 +70,7 @@ export async function deleteWeighin(id: string): Promise<void> {
     .from("bodyweight")
     .delete()
     .eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) fail(error, "bodyweight");
 }
 
 /** The most recent reading, or null before there is one. */
