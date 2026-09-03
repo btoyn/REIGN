@@ -8,6 +8,11 @@ import { ScreenTitle } from "@/components/ScreenTitle";
 import { Skeleton } from "@/components/Skeleton";
 import { secondaryAction } from "@/components/controls";
 import {
+  fetchAlternates,
+  pinAlternate,
+  unpinAlternate,
+} from "@/lib/alternates";
+import {
   Alternative,
   alternativesFor,
   describeAlternative,
@@ -26,14 +31,21 @@ import {
  * Something else that trains the same thing.
  *
  * The machine is taken. This is the answer, ordered so the most useful is
- * first: different equipment leads, because equipment is why you are asking.
+ * first: the owner's own pins, then the same kind of movement, then different
+ * equipment.
  *
- * Nothing here is stored or learned. It is the exercise's own tags — its
- * primary muscle, its secondary muscles, its equipment — read from the library
- * that is already loaded for the picker.
+ * Most of it is not stored or learned. It is the exercise's own tags — its
+ * primary muscle, its mechanic, its secondary muscles, its equipment — read
+ * from the library that is already loaded for the picker.
  *
- * Each row says why it is being offered. The order is a judgement, and a
- * judgement the owner can see is one they can overrule.
+ * The pins are the exception, and they exist because the tags are sometimes
+ * wrong in a way no ordering fixes. Each row says why it is being offered, so
+ * the judgement can be read; Pin is how it gets overruled for good rather than
+ * scrolled past every time.
+ *
+ * Pinning is deliberately not the screen's action. Swapping is: the owner came
+ * here mid-workout with a bench to get on. Pin sits at the end of the row in
+ * label type, close enough to tap and quiet enough to ignore.
  */
 
 type State =
@@ -50,6 +62,8 @@ export default function SwapPage({
   const [state, setState] = useState<State>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [picking, setPicking] = useState<string | null>(null);
+  const [pinning, setPinning] = useState<string | null>(null);
+  const [pinFailed, setPinFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -60,8 +74,10 @@ export default function SwapPage({
       // The owner's own history, which orders equally close substitutes.
       fetchTrainingHistory(),
       fetchHiddenExerciseIds(),
+      // The owner's own pins, which outrank every tag below them.
+      fetchAlternates(),
     ])
-      .then(([entries, library, history, hidden]) => {
+      .then(([entries, library, history, hidden, pins]) => {
         if (!active) return;
 
         const mine = entries.find((e) => e.id === entry);
@@ -91,6 +107,7 @@ export default function SwapPage({
             history.lastPerformed,
             todayDate(),
             exclude,
+            pins.get(current.id) ?? new Set(),
           ),
         });
       })
@@ -104,6 +121,50 @@ export default function SwapPage({
       active = false;
     };
   }, [id, entry, attempt]);
+
+  /*
+    Pinning marks the row and leaves it where it is. The new pin only reaches
+    the top of the list next time the screen is opened.
+
+    That is on purpose. Re-sorting on the tap would slide the row up under a
+    thumb that is still on the screen, and the next tap — on a list that has
+    moved — swaps the exercise. Mid-workout that is a real mistake to make. The
+    row saying Pinned is the confirmation; the order is next time's business.
+  */
+  async function togglePin(exerciseId: string, pinned: boolean) {
+    if (state.status !== "ready") return;
+    const current = state.current;
+
+    setPinning(exerciseId);
+    setPinFailed(false);
+    try {
+      if (pinned) await unpinAlternate(current.id, exerciseId);
+      else await pinAlternate(current.id, exerciseId);
+
+      setState((previous) =>
+        previous.status === "ready"
+          ? {
+              ...previous,
+              alternatives: previous.alternatives.map((alternative) =>
+                alternative.exercise.id === exerciseId
+                  ? { ...alternative, pinned: !pinned }
+                  : alternative,
+              ),
+            }
+          : previous,
+      );
+    } catch (e) {
+      /*
+        A pin that would not save leaves the row as it was and says so. It does
+        not take the screen down: the list is still correct and still swappable,
+        which is what the owner came here for.
+      */
+      console.error("could not change the pin", e);
+      setPinFailed(true);
+    } finally {
+      setPinning(null);
+    }
+  }
 
   async function choose(exerciseId: string) {
     setPicking(exerciseId);
@@ -169,8 +230,8 @@ export default function SwapPage({
               {state.current.name}
             </p>
             <p className="text-body text-muted">
-              Something else for {state.current.primary_muscle}. Different
-              equipment first.
+              Something else for {state.current.primary_muscle}. Your pins
+              first, then the same kind of movement.
             </p>
           </div>
 
@@ -192,13 +253,13 @@ export default function SwapPage({
               {state.alternatives.map((alternative) => (
                 <li
                   key={alternative.exercise.id}
-                  className="border-border border-b last:border-b-0"
+                  className="border-border flex items-center gap-2 border-b last:border-b-0"
                 >
                   <button
                     type="button"
                     disabled={picking !== null}
                     onClick={() => choose(alternative.exercise.id)}
-                    className="w-full py-4 text-left disabled:opacity-60"
+                    className="flex-1 py-4 text-left disabled:opacity-60"
                   >
                     <span className="text-lead text-ink block">
                       {alternative.exercise.name}
@@ -214,10 +275,49 @@ export default function SwapPage({
                         : describeAlternative(alternative)}
                     </span>
                   </button>
+                  {/*
+                    The override. Not gold and not a box: swapping is this
+                    screen's action and this is a preference set on the way
+                    past.
+
+                    Pinned is never carried by colour: the word itself changes,
+                    it gains a rule under it, and the line above starts saying
+                    Pinned. The label type is already semibold, so weight is
+                    not available here as the marker — hence the underline.
+
+                    Stretched to the full height of the row and padded to 44px
+                    wide, because it is tapped between sets with one hand.
+                  */}
+                  <button
+                    type="button"
+                    disabled={pinning !== null || picking !== null}
+                    aria-pressed={alternative.pinned}
+                    onClick={() =>
+                      togglePin(alternative.exercise.id, alternative.pinned)
+                    }
+                    className={`text-label min-w-11 shrink-0 self-stretch px-3 uppercase disabled:opacity-60 ${
+                      alternative.pinned
+                        ? "text-ink underline underline-offset-4"
+                        : "text-muted"
+                    }`}
+                  >
+                    {pinning === alternative.exercise.id
+                      ? "···"
+                      : alternative.pinned
+                        ? "Pinned"
+                        : "Pin"}
+                  </button>
                 </li>
               ))}
             </ul>
           )}
+
+          {pinFailed ? (
+            <p role="alert" className="text-body text-muted mt-4">
+              Could not save that pin. The list is still correct — swapping
+              works.
+            </p>
+          ) : null}
         </>
       ) : null}
     </div>

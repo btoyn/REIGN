@@ -9,21 +9,22 @@ import { daysSince } from "@/lib/variety";
  * stranger on the bench you wanted, so the list has to be ordered by how
  * useful it is right now rather than alphabetically.
  *
- * Everything here reads tags the library already carries. There is no stored
- * table of substitutes, and there is no algorithm learning anything: it is the
- * exercise's own primary muscle, its secondary muscles and its equipment.
- *
- * ONE THING IS MISSING, and it is worth stating rather than papering over. The
- * owner asked for substitutes matched on primary muscle AND MECHANIC —
- * compound against isolation — on the understanding that both were already
- * tagged. Primary muscle, secondary muscles and equipment are in the table;
- * mechanic never was. The source data has it for 789 of the 876 exercises, so
- * it is a column and a backfill away, and until that runs a bench press can
- * suggest a fly. Migration 0005 adds it.
+ * Two things order it. Most of it reads tags the library already carries —
+ * primary muscle, mechanic, secondary muscles, equipment — and nothing is
+ * learned or inferred. Above all of that sits the owner's own pinning, because
+ * a rule read off tags is right on average and wrong in particular, and when
+ * it is wrong the owner is the one who can say so.
  */
 
 export type Alternative = {
   exercise: Exercise;
+  /** Pinned by the owner as a stand-in for this exercise. Beats every tag. */
+  pinned: boolean;
+  /**
+   * Whether it is the same kind of movement: a press for a press rather than a
+   * fly for a press. See mechanicScore for what the three values mean.
+   */
+  mechanic: MechanicMatch;
   /** How many secondary muscles it shares. Higher is a closer substitute. */
   overlap: number;
   /** Whether it needs different equipment, which is usually the whole point. */
@@ -32,6 +33,9 @@ export type Alternative = {
   days: number | null;
 };
 
+/** Same movement kind, unknown on either side, or a different kind. */
+export type MechanicMatch = "same" | "unknown" | "different";
+
 /** How many secondary muscles two exercises have in common. */
 export function overlapWith(a: Exercise, b: Exercise): number {
   const mine = new Set(a.secondary_muscles ?? []);
@@ -39,25 +43,56 @@ export function overlapWith(a: Exercise, b: Exercise): number {
 }
 
 /**
+ * Whether two exercises are the same kind of movement.
+ *
+ * 87 of the library's 876 records carry no mechanic. Those are UNKNOWN and
+ * never a third kind of exercise: an untagged movement sorts between a match
+ * and a mismatch, so a missing tag costs it its place at the top without
+ * pretending it is a fly.
+ */
+export function mechanicMatch(a: Exercise, b: Exercise): MechanicMatch {
+  // Falsy rather than strictly null: an absent column and an empty string are
+  // the same absence of an answer, and neither is a kind of movement.
+  if (!a.mechanic || !b.mechanic) return "unknown";
+  return a.mechanic === b.mechanic ? "same" : "different";
+}
+
+function mechanicScore(match: MechanicMatch): number {
+  return match === "same" ? 2 : match === "unknown" ? 1 : 0;
+}
+
+/**
  * Substitutes for one exercise, best first.
  *
  * The order, and why each step is where it is:
  *
- * 1. **Different equipment first.** The reason for asking is almost always that
- *    the thing you wanted is occupied, so an answer needing the same machine is
- *    not an answer. Same-equipment substitutes still appear, below.
- * 2. **Then the closest match**, by how many secondary muscles it shares. A
+ * 1. **Pinned first.** The owner said these two are interchangeable. That is a
+ *    judgement made in the gym about their own body, and nothing read off a
+ *    tag outranks it. Unpinned substitutes still appear, below.
+ * 2. **Then the same kind of movement.** A bench press is replaced by another
+ *    press, not by a fly. This sits above equipment because a substitute has
+ *    to be the same sort of work first: a dumbbell fly is no answer to a busy
+ *    bench however different its equipment is. An untagged movement sorts
+ *    between the two, never as a third kind.
+ * 3. **Then different equipment.** The reason for asking is almost always that
+ *    the thing you wanted is occupied, so an answer needing the same machine
+ *    is not an answer. Same-equipment substitutes still appear, below.
+ * 4. **Then the closest match**, by how many secondary muscles it shares. A
  *    dumbbell bench press works the triceps and shoulders the way a barbell one
  *    does; a cable crossover does not.
- * 3. **Then longest since last performed**, which is the variety rule already
+ * 5. **Then longest since last performed**, which is the variety rule already
  *    used in browse. Between two equally good substitutes, the one neglected
  *    for a month is the better answer.
- * 4. **Then the name**, so the order never depends on what the database
+ * 6. **Then the name**, so the order never depends on what the database
  *    happened to return.
  *
  * Excluded: the exercise itself, anything already in this workout, and anything
  * outside the gym trim. Suggesting a lift already on today's list, or one
  * needing a kettlebell the gym does not have, wastes the tap that finds it.
+ *
+ * ONE EXCEPTION TO THE MUSCLE FILTER: a pinned exercise is offered whatever it
+ * trains. The owner pinned it knowing what it is, and a pin that the primary
+ * muscle filter then throws away is a setting that silently does nothing.
  */
 export function alternativesFor(
   exercise: Exercise,
@@ -65,22 +100,28 @@ export function alternativesFor(
   lastPerformed: Map<string, string>,
   today: string,
   exclude: Set<string> = new Set(),
+  pinned: Set<string> = new Set(),
 ): Alternative[] {
   return library
     .filter(
       (candidate) =>
         candidate.id !== exercise.id &&
         !exclude.has(candidate.id) &&
-        candidate.primary_muscle === exercise.primary_muscle,
+        (pinned.has(candidate.id) ||
+          candidate.primary_muscle === exercise.primary_muscle),
     )
     .map((candidate) => ({
       exercise: candidate,
+      pinned: pinned.has(candidate.id),
+      mechanic: mechanicMatch(exercise, candidate),
       overlap: overlapWith(exercise, candidate),
       differentEquipment: candidate.equipment !== exercise.equipment,
       days: daysSince(candidate.id, lastPerformed, today),
     }))
     .sort(
       (a, b) =>
+        Number(b.pinned) - Number(a.pinned) ||
+        mechanicScore(b.mechanic) - mechanicScore(a.mechanic) ||
         Number(b.differentEquipment) - Number(a.differentEquipment) ||
         b.overlap - a.overlap ||
         staleness(b.days) - staleness(a.days) ||
@@ -103,12 +144,22 @@ function staleness(days: number | null): number {
  * Why this one is being offered, in a few words.
  *
  * The list is a judgement and the owner should be able to see the judgement
- * rather than trust it. Equipment leads because equipment is usually the reason
- * for asking.
+ * rather than trust it. Pinned leads when it applies, because it is the reason
+ * that overrode everything else; otherwise equipment leads, because equipment
+ * is usually the reason for asking.
+ *
+ * A different mechanic is named and a matching one is not. Everything near the
+ * top of the list matches, so saying so on all of them is noise; saying it on
+ * the ones that do not is the warning that a fly is not a press.
  */
 export function describeAlternative(alternative: Alternative): string {
   const parts: string[] = [];
+  if (alternative.pinned) parts.push("Pinned");
   parts.push(alternative.exercise.equipment ?? "Other");
+
+  if (alternative.mechanic === "different") {
+    parts.push(alternative.exercise.mechanic ?? "different movement");
+  }
 
   if (alternative.overlap > 0) {
     parts.push(
